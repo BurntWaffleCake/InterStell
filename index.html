@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+
+</head>
+
+<body>
+
+    <script>
+
+        var config = {
+            type: Phaser.AUTO,
+            width: 1200,
+            height: 700,
+            physics: {
+                default: 'arcade',
+            },
+
+            scene: {
+                preload: preload,
+                create: create,
+                update: update,
+            }
+
+        };
+
+        class Player extends Phaser.Physics.Arcade.Sprite {
+            accelerationFactor = 1000
+            turnAcceleration = 1000
+            turnRate = 90
+
+            constructor(scene, x, y) {
+                super(scene, x, y, 'player');
+                scene.add.existing(this);
+                scene.physics.add.existing(this);
+                this.setCollideWorldBounds(true);
+
+                this.setDamping(true)
+                this.setDrag(.1, .1)
+                this.setAngularDrag(100)
+                this.setBounce(.5, .5)
+            }
+        }
+
+
+        var game = new Phaser.Game(config);
+
+        //Keyboard controls
+        var cursors;
+        var keys;
+        var space;
+
+        var gui;
+        var guiTimer;
+
+        function preload() {
+
+        }
+
+        function create() {
+            player = new Player(this, 400, 400);
+
+            //Set up user input
+            cursors = this.input.keyboard.createCursorKeys();
+            keys = this.input.keyboard.addKeys('A, D');
+            space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            space.on('down', onSpacePress);
+        }
+
+        function onSpacePress() {
+
+        }
+
+
+        function update(time, delta) {
+            let deltaSeconds = delta / 1000
+            let timeSeconds = time / 1000 
+
+            console.log(deltaSeconds, timeSeconds)
+
+            player.setAcceleration(0,0)
+            player.setAngularAcceleration(0)
+
+            //Handle player movements
+            if (cursors.up.isDown) {
+                player.setAcceleration(player.accelerationFactor * Math.cos(player.angle * Math.PI / 180), player.accelerationFactor * Math.sin(player.angle * Math.PI / 180));
+            }
+
+            if (cursors.left.isDown || keys.A.isDown) {
+                player.setAngularVelocity(-player.turnRate)
+                //player.setAngularAcceleration(-player.turnAcceleration)
+            }
+
+            if (cursors.right.isDown || keys.D.isDown) {
+                player.setAngularVelocity(player.turnRate)
+                //player.setAngularAcceleration(player.turnAcceleration)
+            }
+        }
+
+    </script>
+
+</body>
+
+</html>
