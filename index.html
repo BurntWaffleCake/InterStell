@@ -11,8 +11,7 @@
 <body>
 
     <script>
-// comment test
-// cooler comment test :cool-emoji:
+
         var config = {
             type: Phaser.AUTO,
             width: 1200,
@@ -36,18 +35,18 @@
                 // Initialize the group
                 this.createMultiple({
                     classType: PlayerBullet, // This is the class we create just below
-                    frameQuantity: 200, // Create 200 instances in the pool
+                    frameQuantity: 30, // Create 30 instances in the pool
                     active: false,
                     visible: false,
                     key: 'playerBullet'
                 })
             }
 
-            fireBullet(x, y, direction, speed) {
+            fireBullet(x, y) {
                 // Get the first available sprite in the group
                 const bullet = this.getFirstDead(false);
                 if (bullet) {
-                    bullet.fire(x, y, direction, speed);
+                    bullet.fire(x, y);
                 }
             }
         }
@@ -55,48 +54,35 @@
         class PlayerBullet extends Phaser.Physics.Arcade.Sprite {
             constructor(scene, x, y) {
                 super(scene, x, y, 'playerBullet');
-            }
+            }          
 
             preUpdate(time, delta) { // before the game updates physics
                 super.preUpdate(time, delta);
 
-                if (this.y <= 0 || this.y >= config.height || this.x <= 0 || this.x >= config.width) {
+                if (this.y <= 0 || this.y >= game.height || this.x <= 0 || this.x >= game.width) {
                     this.setActive(false);
                     this.setVisible(false);
                     console.log("Bullet Killed")
                 }
             }
 
-            fire(x, y, direction, speed = 100) {
-                direction.normalize()
-
+            fire(x, y) {
                 this.body.reset(x, y);
 
                 this.setActive(true);
                 this.setVisible(true);
 
-                this.setVelocity((speed) * direction.x, (speed) * direction.y) // default speed is 100
+                this.setVelocityX(900);
             }
         }
 
         class Player extends Phaser.Physics.Arcade.Sprite {
-            shootTimer;
-            shooting = false
-            shotDebounce = false
-
-            myscene;
-
             accelerationFactor = 500
             turnAcceleration = 1000
             turnRate = 145
             movementSpeed = 500
             maxMovementSpeed = 500
 
-            health = 100
-            shotAmount = 3
-            shotSpread = 5
-            fireRate =  600 // rounds per minute
-            shotSpeed = 1000
 
             constructor(scene, x, y) {
                 super(scene, x, y, 'player');
@@ -105,10 +91,33 @@
                 this.setCollideWorldBounds(true);
 
                 this.setDamping(true)
-                this.setDrag(.25, .25)
+                this.setDrag(1.25, 1.25)
                 this.setAngularDrag(100)
                 this.setBounce(.5, .5)
-                this.myscene = scene;
+            }
+        }
+
+
+        // Enemey that runs around and always faces the player
+        class RunnerEnemy extends Phaser.Physics.Arcade.Sprite
+        {
+            constructor(scene, x, y)
+            {
+                super(scene, x, y, 'RunnerEnemy');
+                scene.add.existing(this);
+                scene.physics.add.existing(this);
+                this.setCollideWorldBounds(true);
+                this.setGravityY(0);
+            }
+
+            //moves the enemy to a random targeted location
+            move(){
+                // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
+                // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
+                let newspotx = Phaser.Math.Between(1, 1200);
+                let newspoty = Phaser.Math.Between(1, 700);
+                this.setAccelerationX((newspotx-this.x)/3);
+                this.setAccelerationY((newspoty-this.y)/3);
             }
         }
 
@@ -126,66 +135,61 @@
         var keys;
         var space;
 
+        var gui;
+        var guiTimer;
+
+        var enemies = [];
+
         function preload() {
             this.load.image('stars', 'assets/starbackground.png');
             this.load.image('player', 'assets/maincharacter.png');
+            this.load.image('RunnerEnemy', 'assets/Enemy_1.png');
+        }
+
+        function shootPlayerBullet() {
+            playerBulletGroup.fireBullet(player.x, player.y)
+        }
+
+        //called when player and any enemy from enemies[] overlap
+        function takeDamage() {
+            console.log('Enemy Contact');
+        }
+
+        // initializes a single Runner Enemy
+        function createRunnerEnemy(tempScene){
+            let myEnemy = new RunnerEnemy(tempScene, 100, 100);
+            myEnemy.setScale(.5);
+            enemies.push(myEnemy);
+            tempScene.physics.add.overlap(player, enemies, takeDamage, null, tempScene);
+        }
+
+        //moves all sprites in enemies[]
+        function moveEnemies(){
+            for(let i = 0; i < enemies.length; i++){
+                enemies[i].move();
+                enemies[i].rotation = Math.atan2(player.y - enemies[i].y, player.x - enemies[i].x);
+            }
+
         }
 
         function create() {
             let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
             playerBulletGroup = new PlayerBulletGroup(this);
-            this.input.on('pointerdown', onMouse1Down)
-            this.input.on('pointerup', onMouse1Up)
-
+            this.input.on('pointerdown', shootPlayerBullet)
+           
             player = new Player(this, 400, 400);
+
+            createRunnerEnemy(this)
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
             keys = this.input.keyboard.addKeys('W, A, S, D');
-             }
-
-        function spawnEnemy() {
-            var value = Phaser.Math.Between(1, 20);
-            if (value == 2) {
-
-            }
+            space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            space.on('down', onSpacePress);
         }
 
-        function onMouse1Up() {
-            player.shooting = false
-        }
-
-        function shootPlayerBullet() {
-            let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
-            for (let i = 0; i < player.shotAmount ; i++) {
-                let dividend = player.shotAmount / 2
-                let bulletLookVector = playerLookVector.clone()
-                console.log(i - dividend)
-
-                bulletLookVector.rotate((player.shotSpread * Math.PI / 180) * i - dividend)
-                playerBulletGroup.fireBullet(player.x, player.y, bulletLookVector, player.shotSpeed)
-                console.log("shot" + String(i))
-            }
-
-            if (player.shooting) {
-                player.shootTimer = this.time.delayedCall(
-                1 / (player.fireRate / 60) * 1000,                // ms
-                shootPlayerBullet,
-                [],
-                this
-            );
-            }
-        }
-
-        function onMouse1Down() {
-            player.shooting = true
-            player.shootTimer = player.myscene.time.delayedCall(
-                1 / (player.fireRate / 60) * 1000,                // ms
-                shootPlayerBullet,
-                [],
-                player.myscene
-            );
-        
+        function onSpacePress() {
+            shootPlayerBullet()
         }
 
 
@@ -197,6 +201,7 @@
             player.setAngularAcceleration(0)
 
             let playerMouseDelta = new Phaser.Math.Vector2(game.input.mousePointer.x - player.x, game.input.mousePointer.y - player.y)
+            let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
 
             // player.setAngularVelocity(180 / Math.PI * (player.rotation - Math.atan(playerMouseDelta.y / playerMouseDelta.x)))
 
@@ -213,7 +218,7 @@
 
             player.setAcceleration(player.movementSpeed * movementVector.x, player.movementSpeed * movementVector.y)
 
-            spawnEnemy();
+            setTimeout( function() { moveEnemies(); }, 1000);
         }
 
     </script>
