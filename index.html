@@ -28,11 +28,61 @@
 
         };
 
+        class PlayerBulletGroup extends Phaser.Physics.Arcade.Group {
+            constructor(scene) {
+                super(scene.physics.world, scene);
+
+                // Initialize the group
+                this.createMultiple({
+                    classType: PlayerBullet, // This is the class we create just below
+                    frameQuantity: 30, // Create 30 instances in the pool
+                    active: false,
+                    visible: false,
+                    key: 'playerBullet'
+                })
+            }
+
+            fireBullet(x, y) {
+                // Get the first available sprite in the group
+                const bullet = this.getFirstDead(false);
+                if (bullet) {
+                    bullet.fire(x, y);
+                }
+            }
+        }
+
+        class PlayerBullet extends Phaser.Physics.Arcade.Sprite {
+            constructor(scene, x, y) {
+                super(scene, x, y, 'playerBullet');
+            }          
+
+            preUpdate(time, delta) { // before the game updates physics
+                super.preUpdate(time, delta);
+
+                if (this.y <= 0 || this.y >= game.height || this.x <= 0 || this.x >= game.width) {
+                    this.setActive(false);
+                    this.setVisible(false);
+                    console.log("Bullet Killed")
+                }
+            }
+
+            fire(x, y) {
+                this.body.reset(x, y);
+
+                this.setActive(true);
+                this.setVisible(true);
+
+                this.setVelocityX(900);
+            }
+        }
+
         class Player extends Phaser.Physics.Arcade.Sprite {
             accelerationFactor = 500
             turnAcceleration = 1000
             turnRate = 145
-            movementSpeed = 100
+            movementSpeed = 500
+            maxMovementSpeed = 500
+
 
             constructor(scene, x, y) {
                 super(scene, x, y, 'player');
@@ -41,7 +91,7 @@
                 this.setCollideWorldBounds(true);
 
                 this.setDamping(true)
-                this.setDrag(.25, .25)
+                this.setDrag(1.25, 1.25)
                 this.setAngularDrag(100)
                 this.setBounce(.5, .5)
             }
@@ -49,6 +99,12 @@
 
 
         var game = new Phaser.Game(config);
+
+        var player;
+
+        var playerBulletGroup;
+        console.log(playerBulletGroup)
+
 
         //Keyboard controls
         var cursors;
@@ -62,7 +118,15 @@
 
         }
 
+        function shootPlayerBullet() {
+            playerBulletGroup.fireBullet(player.x, player.y)
+        }
+
         function create() {
+            playerBulletGroup = new PlayerBulletGroup(this);
+            this.input.on('pointerdown', shootPlayerBullet)
+           
+
             player = new Player(this, 400, 400);
 
             //Set up user input
@@ -73,49 +137,36 @@
         }
 
         function onSpacePress() {
-
+            shootPlayerBullet()
         }
 
 
         function update(time, delta) {
             let deltaSeconds = delta / 1000
-            let timeSeconds = time / 1000 
+            let timeSeconds = time / 1000
 
-            player.setAcceleration(0,0)
+            player.setAcceleration(0, 0)
             player.setAngularAcceleration(0)
 
-            let playerMouseDelta = new Phaser.Math.Vector2(game.input.mousePointer.x - player.x , game.input.mousePointer.y - player.y)
-            player.setRotation(Math.atan(playerMouseDelta.y / playerMouseDelta.x) )
+            let playerMouseDelta = new Phaser.Math.Vector2(game.input.mousePointer.x - player.x, game.input.mousePointer.y - player.y)
+            let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
 
-            let movementVector = new Phaser.Math.Vector2(0,0)
+            // player.setAngularVelocity(180 / Math.PI * (player.rotation - Math.atan(playerMouseDelta.y / playerMouseDelta.x)))
 
-            if (keys.W.isDown) { movementVector.add(1, 0) }
-            if (keys.A.isDown) { movementVector.add(-1, 0) }
-            if (keys.S.isDown) { movementVector.add(0, -1) }
-            if (keys.D.isDown) { movementVector.add(0, 1) }
+            player.setRotation(Math.atan(playerMouseDelta.y / playerMouseDelta.x))
+
+            let movementVector = new Phaser.Math.Vector2(0, 0)
+
+            if (keys.W.isDown) { movementVector.add(new Phaser.Math.Vector2(0, -1)) }
+            if (keys.A.isDown) { movementVector.add(new Phaser.Math.Vector2(-1, 0)) }
+            if (keys.S.isDown) { movementVector.add(new Phaser.Math.Vector2(0, 1)) }
+            if (keys.D.isDown) { movementVector.add(new Phaser.Math.Vector2(1, 0)) }
 
             movementVector.normalize()
 
-            console.log(movementVector)
+            player.setAcceleration(player.movementSpeed * movementVector.x, player.movementSpeed * movementVector.y)
 
-            player.setVelocity(player.movementSpeed * movementVector.x, player.movementSpeed * movementVector.y)
-            
-            // if (keys.A.isDown)
 
-            // //Handle player movements
-            // if (cursors.up.isDown) {
-            //     player.setAcceleration(player.accelerationFactor * Math.cos(player.angle * Math.PI / 180), player.accelerationFactor * Math.sin(player.angle * Math.PI / 180));
-            // }
-
-            // if (cursors.left.isDown || keys.A.isDown) {
-            //     player.setAngularVelocity(-player.turnRate)
-            //     //player.setAngularAcceleration(-player.turnAcceleration)
-            // }
-
-            // if (cursors.right.isDown || keys.D.isDown) {
-            //     player.setAngularVelocity(player.turnRate)
-            //     //player.setAngularAcceleration(player.turnAcceleration)
-            // }
         }
 
     </script>
