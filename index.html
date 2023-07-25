@@ -98,6 +98,30 @@
         }
 
 
+        // Enemey that runs around and always faces the player
+        class RunnerEnemy extends Phaser.Physics.Arcade.Sprite
+        {
+            constructor(scene, x, y)
+            {
+                super(scene, x, y, 'RunnerEnemy');
+                scene.add.existing(this);
+                scene.physics.add.existing(this);
+                this.setCollideWorldBounds(true);
+                this.setGravityY(0);
+            }
+
+            //moves the enemy to a random targeted location
+            move(){
+                // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
+                // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
+                let newspotx = Phaser.Math.Between(1, 1200);
+                let newspoty = Phaser.Math.Between(1, 700);
+                this.setAccelerationX((newspotx-this.x)/3);
+                this.setAccelerationY((newspoty-this.y)/3);
+            }
+        }
+
+
         var game = new Phaser.Game(config);
 
         var player;
@@ -114,13 +138,38 @@
         var gui;
         var guiTimer;
 
+        var enemies = [];
+
         function preload() {
             this.load.image('stars', 'assets/starbackground.png');
             this.load.image('player', 'assets/maincharacter.png');
+            this.load.image('RunnerEnemy', 'assets/Enemy_1.png');
         }
 
         function shootPlayerBullet() {
             playerBulletGroup.fireBullet(player.x, player.y)
+        }
+
+        //called when player and any enemy from enemies[] overlap
+        function takeDamage() {
+            console.log('Enemy Contact');
+        }
+
+        // initializes a single Runner Enemy
+        function createRunnerEnemy(tempScene){
+            let myEnemy = new RunnerEnemy(tempScene, 100, 100);
+            myEnemy.setScale(.5);
+            enemies.push(myEnemy);
+            tempScene.physics.add.overlap(player, enemies, takeDamage, null, tempScene);
+        }
+
+        //moves all sprites in enemies[]
+        function moveEnemies(){
+            for(let i = 0; i < enemies.length; i++){
+                enemies[i].move();
+                enemies[i].rotation = Math.atan2(player.y - enemies[i].y, player.x - enemies[i].x);
+            }
+
         }
 
         function create() {
@@ -128,21 +177,15 @@
             playerBulletGroup = new PlayerBulletGroup(this);
             this.input.on('pointerdown', shootPlayerBullet)
            
-
             player = new Player(this, 400, 400);
+
+            createRunnerEnemy(this)
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
             keys = this.input.keyboard.addKeys('W, A, S, D');
             space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
             space.on('down', onSpacePress);
-        }
-
-        function spawnEnemy(){
-            var value = Phaser.Math.Between(1, 20);
-            if(value == 2){
-                
-            }
         }
 
         function onSpacePress() {
@@ -175,7 +218,7 @@
 
             player.setAcceleration(player.movementSpeed * movementVector.x, player.movementSpeed * movementVector.y)
 
-            spawnEnemy();
+            setTimeout( function() { moveEnemies(); }, 1000);
         }
 
     </script>
