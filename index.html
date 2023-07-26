@@ -139,6 +139,7 @@
                 shotSpread = 5
                 fireRate = 600 // rounds per minute
                 shotSpeed = 1000
+                shotDamage = 100;
 
                 constructor(scene, x, y) {
                     super(scene, x, y, 'player');
@@ -197,6 +198,7 @@
             health = 100;
             attackDamage = 5;
             _scene;
+            alive = true;
 
             constructor(scene, x, y, projectileGroup) {
                 super(scene, x, y, 'SwarmEnemy');
@@ -209,10 +211,19 @@
                 this.move(this) 
             }
 
+            isAlive() {
+                if (this.health <= 0 ) { return false }
+                return true
+            }
+
+            kill() {
+                this.destroy();
+                this.alive = false;
+            }
+
             //moves the enemy to a random targeted location
             move(self) {
-                console.log(self)
-
+                if (!this.alive) { return }
                 // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
                 // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
                 let newspotx = Phaser.Math.Between(1, 1200);
@@ -223,10 +234,12 @@
             }
 
             preUpdate() {
-                if (this.health <= 0 ) { this.destroy }
+                console.log("Updating enemy", this.health);
+                if (!this.isAlive()) { this.kill(); return; }
             }
 
             takeDamage(damage) {
+                console.log(this.health, damage)
                 this.health -= damage;
             }
         }
@@ -321,7 +334,7 @@
             let timeSeconds = time / 1000
 
             this.physics.overlap(player, enemies, function(player, targetEnemy) {  console.log(player, targetEnemy); player.takeDamage(targetEnemy.attackDamage); });
-            this.physics.overlap(enemies, playerProjectileGroup, function(enemy, playerProjectile) { enemy.takeDamage(); playerProjectile.onHit(); } )
+            this.physics.overlap(enemies, playerProjectileGroup, function(enemy, playerProjectile) { enemy.takeDamage(player.shotDamage); playerProjectile.onHit(); } )
         }
 
     </script>
