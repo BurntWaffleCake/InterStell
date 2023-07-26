@@ -30,32 +30,35 @@
             //BigBalling2
         };
 
-        class PlayerBulletGroup extends Phaser.Physics.Arcade.Group {
+        class PlayerProjectileGroup extends Phaser.Physics.Arcade.Group {
             constructor(scene) {
                 super(scene.physics.world, scene);
 
                 // Initialize the group
                 this.createMultiple({
-                    classType: PlayerBullet, // This is the class we create just below
+                    classType: Projectile, // This is the class we create just below
                     frameQuantity: 200, // Create 200 instances in the pool
                     active: false,
                     visible: false,
-                    key: 'playerBullet'
+                    key: 'projectile'
                 })
             }
 
-            fireBullet(x, y, direction, speed) {
+            fire(x, y, direction, speed) {
                 // Get the first available sprite in the group
-                const bullet = this.getFirstDead(false);
-                if (bullet) {
-                    bullet.fire(x, y, direction, speed);
+                const newProjectile = this.getFirstDead(false);
+                if (newProjectile) {
+                    newProjectile.fire(x, y, direction, speed);
                 }
             }
         }
 
-        class PlayerBullet extends Phaser.Physics.Arcade.Sprite {
-            constructor(scene, x, y) {
-                super(scene, x, y, 'playerBullet');
+        class Projectile extends Phaser.Physics.Arcade.Sprite {
+            projectileType;
+
+            constructor(scene, x, y, projectileType) {
+                super(scene, x, y, projectileType);
+                this.projectileId = projectileType;
             }
 
             preUpdate(time, delta) { // before the game updates physics
@@ -64,7 +67,7 @@
                 if (this.y <= 0 || this.y >= config.height || this.x <= 0 || this.x >= config.width) {
                     this.setActive(false);
                     this.setVisible(false);
-                    console.log("Bullet Killed")
+                    console.log("Projectile Killed")
                 }
             }
 
@@ -97,7 +100,7 @@
             health = 100
             shotAmount = 3
             shotSpread = 5
-            fireRate =  600 // rounds per minute
+            fireRate = 600 // rounds per minute
             shotSpeed = 1000
 
             constructor(scene, x, y) {
@@ -116,10 +119,8 @@
 
 
         // Enemey that runs around and always faces the player
-        class RunnerEnemy extends Phaser.Physics.Arcade.Sprite
-        {
-            constructor(scene, x, y)
-            {
+        class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
+            constructor(scene, x, y) {
                 super(scene, x, y, 'RunnerEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
@@ -128,13 +129,13 @@
             }
 
             //moves the enemy to a random targeted location
-            move(){
+            move() {
                 // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
                 // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
                 let newspotx = Phaser.Math.Between(1, 1200);
                 let newspoty = Phaser.Math.Between(1, 700);
-                this.setAccelerationX((newspotx-this.x)/3);
-                this.setAccelerationY((newspoty-this.y)/3);
+                this.setAccelerationX((newspotx - this.x) / 3);
+                this.setAccelerationY((newspoty - this.y) / 3);
             }
         }
 
@@ -143,9 +144,7 @@
 
         var player;
 
-        var playerBulletGroup;
-        console.log(playerBulletGroup)
-
+        var playerProjectileGroup;
 
         //Keyboard controls
         var cursors;
@@ -165,7 +164,7 @@
         }
 
         // initializes a single Runner Enemy
-        function createRunnerEnemy(tempScene){
+        function createRunnerEnemy(tempScene) {
             let myEnemy = new RunnerEnemy(tempScene, 100, 100);
             myEnemy.setScale(.5);
             enemies.push(myEnemy);
@@ -173,8 +172,8 @@
         }
 
         //moves all sprites in enemies[]
-        function moveEnemies(){
-            for(let i = 0; i < enemies.length; i++){
+        function moveEnemies() {
+            for (let i = 0; i < enemies.length; i++) {
                 enemies[i].move();
                 enemies[i].rotation = Math.atan2(player.y - enemies[i].y, player.x - enemies[i].x);
             }
@@ -183,9 +182,10 @@
 
         function create() {
             let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
-            playerBulletGroup = new PlayerBulletGroup(this);
-            this.input.on('pointerdown', shootPlayerBullet)
-           
+            playerProjectileGroup = new PlayerProjectileGroup(this);
+            this.input.on('pointerdown', onMouse1Down)
+            this.input.on('pointerup', onMouse1Up)
+
             player = new Player(this, 400, 400);
 
             createRunnerEnemy(this)
@@ -198,28 +198,38 @@
 
 
         function onMouse1Up() {
-            player.shooting = false
+            player.shooting = false;
+            if (!player.shotDebounce) {
+                player.shotDebounce = true;
+                player.myscene.time.delayedCall(
+                    1 / (player.fireRate / 60) * 1000,                // ms
+                    function () { player.shotDebounce = false },
+                    [],
+                    this
+                );
+            }
         }
 
         function shootPlayerBullet() {
             let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
-            for (let i = 0; i < player.shotAmount ; i++) {
+            for (let i = 0; i < player.shotAmount; i++) {
                 let dividend = player.shotAmount / 2
                 let bulletLookVector = playerLookVector.clone()
-                console.log(i - dividend)
 
-                bulletLookVector.rotate((player.shotSpread * Math.PI / 180) * i - dividend)
-                playerBulletGroup.fireBullet(player.x, player.y, bulletLookVector, player.shotSpeed)
+                bulletLookVector.rotate((player.shotSpread * Math.PI / 180) * (i - dividend))
+                playerProjectileGroup.fire(player.x, player.y, bulletLookVector, player.shotSpeed)
                 console.log("shot" + String(i))
             }
 
             if (player.shooting) {
+                console.log("shooting")
+
                 player.shootTimer = this.time.delayedCall(
-                1 / (player.fireRate / 60) * 1000,                // ms
-                shootPlayerBullet,
-                [],
-                this
-            );
+                    1 / (player.fireRate / 60) * 1000,                // ms
+                    shootPlayerBullet,
+                    [],
+                    this
+                );
             }
         }
 
@@ -231,7 +241,7 @@
                 [],
                 player.myscene
             );
-        
+
         }
 
         function updatePlayerMovement() {
@@ -255,7 +265,7 @@
             movementVector.normalize()
 
             player.setAcceleration(player.movementSpeed * movementVector.x, player.movementSpeed * movementVector.y)
-            
+
         }
 
         function update(time, delta) {
@@ -263,8 +273,8 @@
             let timeSeconds = time / 1000
 
             updatePlayerMovement()
-            
-            setTimeout( function() { moveEnemies(); }, 1000);
+
+            setTimeout(function () { moveEnemies(); }, 1000);
         }
 
     </script>
