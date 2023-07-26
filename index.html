@@ -19,7 +19,7 @@
             physics: {
                 default: 'arcade',
                 arcade: {
-                    // debug: true,
+                    debug: true,
                     debugShowVelocity: true,
                 }
             },
@@ -222,15 +222,15 @@
             }
 
             //moves the enemy to a random targeted location
-            move(self) {
+            move() {
                 if (!this.alive) { return }
                 // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
                 // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
                 let newspotx = Phaser.Math.Between(1, 1200);
                 let newspoty = Phaser.Math.Between(1, 700);
-                self.setAccelerationX((newspotx - self.x) / 3);
-                self.setAccelerationY((newspoty - self.y) / 3);
-                self._scene.time.delayedCall(1000, self.move, [self])
+                this.setAccelerationX((newspotx - this.x) / 3);
+                this.setAccelerationY((newspoty - this.y) / 3);
+                setTimeout( function() { moveSwarmEnemies(); }, 0);
             }
 
             preUpdate() {
@@ -262,13 +262,21 @@
             this.load.image('SwarmEnemy', 'assets/Enemy_1.png');
         }
 
-        // initializes a single Runner Enemy
+        // initializes a single Swarm Enemy
         function createSwarmEnemy(tempScene) {
             let myEnemy = new SwarmEnemy(tempScene, 100, 100);
             enemies.push(myEnemy);
         }
 
         //moves all sprites in enemies[]
+        function moveSwarmEnemies() {
+            for (let i = 0; i < enemies.length; i++) {
+                enemies[i].move();
+                enemies[i].rotation = Math.atan2(player.y - enemies[i].y, player.x - enemies[i].x);
+            }
+
+        }
+
         function create() {
             let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
             playerProjectileGroup = new PlayerProjectileGroup(this);
