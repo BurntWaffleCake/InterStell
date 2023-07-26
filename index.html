@@ -85,6 +85,10 @@
                 return true
             }
 
+            _kill() {
+
+            }
+
             preUpdate(time, delta) { // before the game updates physics
                 super.preUpdate(time, delta);
 
@@ -96,8 +100,7 @@
                 console.log(this._testAlive())
 
                 if (!this._testAlive()) {
-                    this.setActive(false);
-                    this.setVisible(false);
+                    this.disableBody(true, true);
                     console.log("Projectile Killed")
                 }
             }
@@ -105,7 +108,7 @@
             fire(x, y, direction, speed = 100) {
                 direction.normalize()
 
-                this.body.reset(x, y);
+                this.enableBody(true, x, y, true, true);
                 this._previousPosition = { x: x, y: y } //reset previous position for distance calculation
 
                 this._distanceTraveled = 0;
@@ -158,24 +161,35 @@
         // Enemey that runs around and always faces the player
         class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
             health = 100;
+            _scene;
 
             constructor(scene, x, y, projectileGroup) {
                 super(scene, x, y, 'RunnerEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
+                this._scene = scene;
                 this.setCollideWorldBounds(true);
                 this.setGravityY(0);
+                this.move(this) 
             }
 
             //moves the enemy to a random targeted location
-            move() {
+            move(self) {
+                console.log(self)
+
                 // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
                 // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
                 let newspotx = Phaser.Math.Between(1, 1200);
                 let newspoty = Phaser.Math.Between(1, 700);
-                this.setAccelerationX((newspotx - this.x) / 3);
-                this.setAccelerationY((newspoty - this.y) / 3);
+                self.setAccelerationX((newspotx - self.x) / 3);
+                self.setAccelerationY((newspoty - self.y) / 3);
+                self._scene.time.delayedCall(1000, self.move, [self])
             }
+            
+            preUpdate() {
+
+            }
+
         }
 
         var game = new Phaser.Game(config);
@@ -306,8 +320,6 @@
             this.physics.overlap(enemies, playerProjectileGroup, function () { console.log("projectile hit enemy") })
 
             updatePlayerMovement()
-
-            setTimeout(function () { moveEnemies(); }, 1000);
         }
 
     </script>
