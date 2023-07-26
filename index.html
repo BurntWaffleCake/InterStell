@@ -19,7 +19,7 @@
             physics: {
                 default: 'arcade',
                 arcade: {
-                    // debug: true,
+                    debug: true,
                     debugShowVelocity: true,
                 }
             },
@@ -35,7 +35,7 @@
         };
 
         class ProjectileGroup extends Phaser.Physics.Arcade.Group {
-            constructor(scene) {
+            constructor(spriteName, scene) {
                 super(scene.physics.world, scene);
 
                 // Initialize the group
@@ -44,7 +44,7 @@
                     frameQuantity: 200, // Create 200 instances in the pool
                     active: false,
                     visible: false,
-                    key: 'projectile'
+                    key: spriteName
                 })
             }
 
@@ -73,6 +73,7 @@
 
             constructor(scene, x, y, projectileType, config) {
                 super(scene, x, y, projectileType);
+
                 this.projectileId = projectileType;
                 this._previousPosition = { x: x, y: y };
                 this._distanceTraveled = 0;
@@ -90,18 +91,21 @@
             preUpdate(time, delta) { // before the game updates physics
                 super.preUpdate(time, delta);
 
+                if (!this._testAlive()) {
+                    this.disableBody(true, true);
+                }
+
                 this._timePassed += delta;
                 this._distanceTraveled += Phaser.Math.Distance.Between(this._previousPosition.x, this._previousPosition.y, this.x, this.y);
 
                 this._previousPosition = { x: this.x, y: this.y }
-
-                if (!this._testAlive()) {
-                    this.disableBody(true, true);
-                }
+                this.rotation = Math.atan2(this.body.velocity.y / this.body.velocity.length(), this.body.velocity.x / this.body.velocity.length());    
             }
 
             fire(x, y, direction, speed = 100) {
                 direction.normalize()
+
+                this.setBodySize(10, 10 , true)
 
                 this.enableBody(true, x, y, true, true);
                 this._previousPosition = { x: x, y: y } //reset previous position for distance calculation
@@ -167,6 +171,8 @@
 
             shoot() {
                 let playerLookVector = new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation))
+                this.myscene.shootSound.play()
+
                 for (let i = 0; i < this.shotAmount; i++) {
                     let dividend = ~~(this.shotAmount / 2)
                     let bulletLookVector = playerLookVector.clone()
@@ -317,6 +323,8 @@
         var game = new Phaser.Game(config);
         var player;
 
+        var shootSound;
+
         var playerProjectileGroup;
         var enemyProjectileGroup;
 
@@ -328,9 +336,12 @@
         var enemies = [];
 
         function preload() {
-            this.load.image('stars', 'assets/newstarbackground.png');
-            this.load.image('player', 'assets/maincharacter.png');
-            this.load.image('SwarmEnemy', 'assets/Enemy_1.png');
+            this.load.image('stars', 'assets/images/newstarbackground.png');
+            this.load.image('player', 'assets/images/maincharacter.png');
+            this.load.image('SwarmEnemy', 'assets/images/Enemy_1.png');
+            this.load.image('playerLaser', 'assets/images/PlayerLaser.png')
+
+            this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3' )
         }
 
         // initializes a single Runner Enemy
@@ -342,13 +353,15 @@
 
         //moves all sprites in enemies[]
         function create() {
+            shootSound = this.sound.add('playershoot', {loop: false});
+
             let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
-            playerProjectileGroup = new ProjectileGroup(this);
-            enemyProjectileGroup = new ProjectileGroup(this);
+            playerProjectileGroup = new ProjectileGroup('playerLaser', this);
+            enemyProjectileGroup = new ProjectileGroup('enemyLaser', this);
 
             player = new Player(playerProjectileGroup, this, 500, 500);
 
-            for (let i = 1; i < 2; i++) {
+            for (let i = 1; i <= 100; i++) {
                 createSwarmEnemy(this)
             }
 
