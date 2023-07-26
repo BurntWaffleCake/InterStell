@@ -85,10 +85,6 @@
                 return true
             }
 
-            _kill() {
-
-            }
-
             preUpdate(time, delta) { // before the game updates physics
                 super.preUpdate(time, delta);
 
@@ -108,11 +104,7 @@
             fire(x, y, direction, speed = 100) {
                 direction.normalize()
 
-<<<<<<< HEAD
                 this.enableBody(true, x, y, true, true);
-=======
-                this.enableBody(true,x, y, true, true);
->>>>>>> b89ede1d603a8b27ed7de3d0d2325a9348505862
                 this._previousPosition = { x: x, y: y } //reset previous position for distance calculation
 
                 this._distanceTraveled = 0;
@@ -130,55 +122,90 @@
         }
 
         class Player extends Phaser.Physics.Arcade.Sprite {
-            shootTimer;
-            shooting = false
-            shotDebounce = false
+                shootTimer;
+                shooting = false
+                shotDebounce = false
 
-            myscene;
+                myscene;
 
-            accelerationFactor = 500
-            turnAcceleration = 1000
-            turnRate = 145
-            movementSpeed = 500
-            maxMovementSpeed = 500
+                accelerationFactor = 500
+                turnAcceleration = 1000
+                turnRate = 145
+                movementSpeed = 500
+                maxMovementSpeed = 500
 
-            health = 100
-            shotAmount = 1
-            shotSpread = 5
-            fireRate = 600 // rounds per minute
-            shotSpeed = 1000
+                health = 100
+                shotAmount = 1
+                shotSpread = 5
+                fireRate = 600 // rounds per minute
+                shotSpeed = 1000
 
-            constructor(scene, x, y) {
-                super(scene, x, y, 'player');
-                scene.add.existing(this);
-                scene.physics.add.existing(this);
-                this.setCollideWorldBounds(true);
+                constructor(scene, x, y) {
+                    super(scene, x, y, 'player');
+                    scene.add.existing(this);
+                    scene.physics.add.existing(this);
+                    this.setCollideWorldBounds(true);
 
-                this.setDamping(true)
-                this.setDrag(.25, .25)
-                this.setAngularDrag(100)
-                this.setBounce(.5, .5)
-                this.myscene = scene;
+                    this.setDamping(true)
+                    this.setDrag(.25, .25)
+                    this.setAngularDrag(100)
+                    this.setBounce(.5, .5)
+                    this.myscene = scene;
+                }
+
+                isAlive() {
+                    if (this.health <= 0 ) { return false }
+                    return true
+                }
+
+                updatePlayerMovement() {
+                    this.setAcceleration(0, 0)
+                    this.setAngularAcceleration(0)
+
+                    let playerMouseDelta = new Phaser.Math.Vector2(this.myscene.input.mousePointer.x - this.x, this.myscene.input.mousePointer.y - this.y)
+                    let playerLookVector = new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation))
+
+                    this.setRotation(Math.atan2(playerMouseDelta.y, playerMouseDelta.x))
+
+                    let movementVector = new Phaser.Math.Vector2(0, 0)
+
+                    if (keys.W.isDown) { movementVector.add(new Phaser.Math.Vector2(0, -1)) }
+                    if (keys.A.isDown) { movementVector.add(new Phaser.Math.Vector2(-1, 0)) }
+                    if (keys.S.isDown) { movementVector.add(new Phaser.Math.Vector2(0, 1)) }
+                    if (keys.D.isDown) { movementVector.add(new Phaser.Math.Vector2(1, 0)) }
+
+                    movementVector.normalize()
+
+                    this.setAcceleration(this.movementSpeed * movementVector.x, this.movementSpeed * movementVector.y)
+                }
+
+                preUpdate() {
+                    if (!this.isAlive()) {
+                        this.destroy()
+                        return
+                    }
+                    this.updatePlayerMovement()
+                }
+
+                takeDamage(damage) {
+                    this.health -= damage;
+                }
             }
-        }
 
         // Enemey that runs around and always faces the player
-        class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
+        class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
             health = 100;
-<<<<<<< HEAD
-=======
-            alive = true;
->>>>>>> b89ede1d603a8b27ed7de3d0d2325a9348505862
+            attackDamage = 5;
             _scene;
 
             constructor(scene, x, y, projectileGroup) {
-                super(scene, x, y, 'RunnerEnemy');
+                super(scene, x, y, 'SwarmEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
                 this._scene = scene;
                 this.setCollideWorldBounds(true);
                 this.setGravityY(0);
-<<<<<<< HEAD
+                this.setScale(.5);
                 this.move(this) 
             }
 
@@ -186,40 +213,22 @@
             move(self) {
                 console.log(self)
 
-=======
-                this.move()
-            }
-
-            move() {
-                if (!this.alive) { return }
-                else{
->>>>>>> b89ede1d603a8b27ed7de3d0d2325a9348505862
                 // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
                 // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
                 let newspotx = Phaser.Math.Between(1, 1200);
                 let newspoty = Phaser.Math.Between(1, 700);
-<<<<<<< HEAD
                 self.setAccelerationX((newspotx - self.x) / 3);
                 self.setAccelerationY((newspoty - self.y) / 3);
                 self._scene.time.delayedCall(1000, self.move, [self])
-=======
-                this.setAccelerationX((newspotx - this.x) / 3);
-                this.setAccelerationY((newspoty - this.y) / 3);
-                setTimeout( function() { moveRunnerEnemies(); }, 0);
-                }
             }
 
-            //moves the enemy to a random targeted location
-
-            preUpdate(){
-                
->>>>>>> b89ede1d603a8b27ed7de3d0d2325a9348505862
-            }
-            
             preUpdate() {
-
+                if (this.health <= 0 ) { this.destroy }
             }
 
+            takeDamage(damage) {
+                this.health -= damage;
+            }
         }
 
         var game = new Phaser.Game(config);
@@ -237,30 +246,16 @@
         function preload() {
             this.load.image('stars', 'assets/newstarbackground.png');
             this.load.image('player', 'assets/maincharacter.png');
-            this.load.image('RunnerEnemy', 'assets/Enemy_1.png');
-        }
-        //called when player and any enemy from enemies[] overlap
-        function takeDamage() {
-            console.log('Enemy Contact');
+            this.load.image('SwarmEnemy', 'assets/Enemy_1.png');
         }
 
         // initializes a single Runner Enemy
-        function createRunnerEnemy(tempScene) {
-            let myEnemy = new RunnerEnemy(tempScene, 100, 100);
-            myEnemy.setScale(.5);
+        function createSwarmEnemy(tempScene) {
+            let myEnemy = new SwarmEnemy(tempScene, 100, 100);
             enemies.push(myEnemy);
-            tempScene.physics.add.overlap(player, enemies, takeDamage, null, tempScene);
         }
 
         //moves all sprites in enemies[]
-        function moveRunnerEnemies() {
-            for (let i = 0; i < enemies.length; i++) {
-                enemies[i].move();
-                enemies[i].rotation = Math.atan2(player.y - enemies[i].y, player.x - enemies[i].x);
-            }
-
-        }
-
         function create() {
             let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
             playerProjectileGroup = new PlayerProjectileGroup(this);
@@ -269,7 +264,7 @@
 
             player = new Player(this, 400, 400);
 
-            createRunnerEnemy(this)
+            createSwarmEnemy(this)
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
@@ -321,54 +316,12 @@
 
         }
 
-        function hurtEnemy(a, b, c){
-            console.log(a.health)
-            a.health -= 50;
-            b.disableBody(true, true)
-            console.log(a.health)
-            if(a.health <= 0){
-                killEnemy(a)
-            }
-        }
-
-        function killEnemy(a){
-            a.destroy()
-        }
-
-        function updatePlayerMovement() {
-            player.setAcceleration(0, 0)
-            player.setAngularAcceleration(0)
-
-            let playerMouseDelta = new Phaser.Math.Vector2(game.input.mousePointer.x - player.x, game.input.mousePointer.y - player.y)
-            let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
-
-            player.setRotation(Math.atan2(playerMouseDelta.y, playerMouseDelta.x))
-
-            let movementVector = new Phaser.Math.Vector2(0, 0)
-
-            if (keys.W.isDown) { movementVector.add(new Phaser.Math.Vector2(0, -1)) }
-            if (keys.A.isDown) { movementVector.add(new Phaser.Math.Vector2(-1, 0)) }
-            if (keys.S.isDown) { movementVector.add(new Phaser.Math.Vector2(0, 1)) }
-            if (keys.D.isDown) { movementVector.add(new Phaser.Math.Vector2(1, 0)) }
-
-            movementVector.normalize()
-
-            player.setAcceleration(player.movementSpeed * movementVector.x, player.movementSpeed * movementVector.y)
-
-        }
-
         function update(time, delta) {
             let deltaSeconds = delta / 1000
             let timeSeconds = time / 1000
 
-            this.physics.overlap(enemies, playerProjectileGroup, hurtEnemy)
-
-            updatePlayerMovement()
-<<<<<<< HEAD
-=======
-
-            
->>>>>>> b89ede1d603a8b27ed7de3d0d2325a9348505862
+            this.physics.overlap(player, enemies, function(player, targetEnemy) {  console.log(player, targetEnemy); player.takeDamage(targetEnemy.attackDamage); });
+            this.physics.overlap(enemies, playerProjectileGroup, function(enemy, playerProjectile) { enemy.takeDamage(); playerProjectile.onHit(); } )
         }
 
     </script>
