@@ -18,6 +18,10 @@
             height: 700,
             physics: {
                 default: 'arcade',
+                arcade: {
+                    debug: true,
+                    debugShowVelocity: true,
+                }
             },
 
             scene: {
@@ -55,16 +59,36 @@
 
         class Projectile extends Phaser.Physics.Arcade.Sprite {
             projectileType;
+            _distanceTraveled = 0;
+            _previousPosition;
+            _secondsPassed = 0;
 
-            constructor(scene, x, y, projectileType) {
+            maxDistance = 250;
+
+            constructor(scene, x, y, projectileType, config) { 
                 super(scene, x, y, projectileType);
                 this.projectileId = projectileType;
+                this._previousPosition = { x: x, y: y };
+                this._distanceTraveled = 0;
+                this._secondsPassed = 0;
+                this.setScale(.1, .1);
+            }
+
+            _testAlive() {
+                if (this.y <= 0 || this.y >= config.height || this.x <= 0 || this.x >= config.width) { return false }
+                if (this.maxDistance <= this._distanceTraveled) { return false }
+                return true
             }
 
             preUpdate(time, delta) { // before the game updates physics
                 super.preUpdate(time, delta);
 
-                if (this.y <= 0 || this.y >= config.height || this.x <= 0 || this.x >= config.width) {
+                this._timePassed += delta;
+                this._distanceTraveled += Phaser.Math.Distance.Between(this._previousPosition.x, this._previousPosition.y, this.x, this.y);
+
+                this._previousPosition = { x: this.x, y: this.y }
+
+                if (!this._testAlive()) {
                     this.setActive(false);
                     this.setVisible(false);
                     console.log("Projectile Killed")
@@ -75,6 +99,10 @@
                 direction.normalize()
 
                 this.body.reset(x, y);
+                this._previousPosition = { x: x, y: y } //reset previous position for distance calculation
+
+                this._distanceTraveled = 0;
+                this._secondsPassed = 0;
 
                 this.setActive(true);
                 this.setVisible(true);
@@ -82,7 +110,6 @@
                 this.setVelocity((speed) * direction.x, (speed) * direction.y) // default speed is 100
             }
         }
-
 
         class Player extends Phaser.Physics.Arcade.Sprite {
             shootTimer;
@@ -117,10 +144,11 @@
             }
         }
 
-
         // Enemey that runs around and always faces the player
         class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
-            constructor(scene, x, y) {
+            health = 100;
+
+            constructor(scene, x, y, projectileGroup) {
                 super(scene, x, y, 'RunnerEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
@@ -139,9 +167,7 @@
             }
         }
 
-
         var game = new Phaser.Game(config);
-
         var player;
 
         var playerProjectileGroup;
@@ -196,7 +222,6 @@
 
         }
 
-
         function onMouse1Up() {
             player.shooting = false;
             if (!player.shotDebounce) {
@@ -213,17 +238,14 @@
         function shootPlayerBullet() {
             let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
             for (let i = 0; i < player.shotAmount; i++) {
-                let dividend = player.shotAmount / 2
+                let dividend = ~~(player.shotAmount / 2)
                 let bulletLookVector = playerLookVector.clone()
 
                 bulletLookVector.rotate((player.shotSpread * Math.PI / 180) * (i - dividend))
                 playerProjectileGroup.fire(player.x, player.y, bulletLookVector, player.shotSpeed)
-                console.log("shot" + String(i))
             }
 
             if (player.shooting) {
-                console.log("shooting")
-
                 player.shootTimer = this.time.delayedCall(
                     1 / (player.fireRate / 60) * 1000,                // ms
                     shootPlayerBullet,
@@ -251,9 +273,7 @@
             let playerMouseDelta = new Phaser.Math.Vector2(game.input.mousePointer.x - player.x, game.input.mousePointer.y - player.y)
             let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
 
-            // player.setAngularVelocity(180 / Math.PI * (player.rotation - Math.atan(playerMouseDelta.y / playerMouseDelta.x)))
-
-            player.setRotation(Math.atan(playerMouseDelta.y / playerMouseDelta.x))
+            player.setRotation(Math.atan2(playerMouseDelta.y, playerMouseDelta.x))
 
             let movementVector = new Phaser.Math.Vector2(0, 0)
 
@@ -271,6 +291,8 @@
         function update(time, delta) {
             let deltaSeconds = delta / 1000
             let timeSeconds = time / 1000
+
+            this.physics.overlap(enemies, playerProjectileGroup, function () { console.log("projectile hit enemy") })
 
             updatePlayerMovement()
 
