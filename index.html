@@ -59,11 +59,14 @@
 
         class Projectile extends Phaser.Physics.Arcade.Sprite {
             projectileType;
+            
             _distanceTraveled = 0;
             _previousPosition;
             _secondsPassed = 0;
+            _pierceCount = 0;
 
             maxDistance = 250;
+            maxPierce = 0;
 
             constructor(scene, x, y, projectileType, config) { 
                 super(scene, x, y, projectileType);
@@ -72,11 +75,13 @@
                 this._distanceTraveled = 0;
                 this._secondsPassed = 0;
                 this.setScale(.1, .1);
+                this.addListener("overlap", function() { console.log("Projectile overlaped") })
             }
 
             _testAlive() {
                 if (this.y <= 0 || this.y >= config.height || this.x <= 0 || this.x >= config.width) { return false }
-                if (this.maxDistance <= this._distanceTraveled) { return false }
+                if (this.maxDistance <= this._distanceTraveled) { return false };
+                if (this._pierceCount > this.maxPierce) { return false };
                 return true
             }
 
@@ -87,6 +92,8 @@
                 this._distanceTraveled += Phaser.Math.Distance.Between(this._previousPosition.x, this._previousPosition.y, this.x, this.y);
 
                 this._previousPosition = { x: this.x, y: this.y }
+
+                console.log(this._testAlive())
 
                 if (!this._testAlive()) {
                     this.setActive(false);
@@ -109,6 +116,10 @@
 
                 this.setVelocity((speed) * direction.x, (speed) * direction.y) // default speed is 100
             }
+
+            onHit() {
+                this._pierceCount -= 1;
+            }
         }
 
         class Player extends Phaser.Physics.Arcade.Sprite {
@@ -125,7 +136,7 @@
             maxMovementSpeed = 500
 
             health = 100
-            shotAmount = 3
+            shotAmount = 1
             shotSpread = 5
             fireRate = 600 // rounds per minute
             shotSpeed = 1000
