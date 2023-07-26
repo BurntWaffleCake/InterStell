@@ -59,16 +59,19 @@
 
         class Projectile extends Phaser.Physics.Arcade.Sprite {
             projectileType;
-            
+
             _distanceTraveled = 0;
             _previousPosition;
             _secondsPassed = 0;
             _pierceCount = 0;
+            _piercedObjects = [];
+
+            UUID;
 
             maxDistance = 1000;
-            maxPierce = 0;
+            maxPierce = 1;
 
-            constructor(scene, x, y, projectileType, config) { 
+            constructor(scene, x, y, projectileType, config) {
                 super(scene, x, y, projectileType);
                 this.projectileId = projectileType;
                 this._previousPosition = { x: x, y: y };
@@ -105,6 +108,7 @@
 
                 this._distanceTraveled = 0;
                 this._secondsPassed = 0;
+                this._pierceCount = 0;
 
                 this.setActive(true);
                 this.setVisible(true);
@@ -112,96 +116,121 @@
                 this.setVelocity((speed) * direction.x, (speed) * direction.y) // default speed is 100
             }
 
-            onHit() {
-                this._pierceCount -= 1;
+            onHit(hitObject) {
+                if (this._piercedObjects.find(element => element == hitObject.UUID)) { console.log("alreadyhit"); return }
+                this._pierceCount += 1;
+                this._piercedObjects.push(hitObject.UUID);
             }
         }
 
         class Player extends Phaser.Physics.Arcade.Sprite {
-                _iframeremainingtime = 0;
+            _iframeremainingtime = 0;
+            _timesincelastshot = 0;
 
-                iframeTime = .25; //seconds
+            iframeTime = .25; //seconds
 
-                shootTimer;
-                shooting = false
-                shotDebounce = false
+            shootTimer;
+            shooting = false
+            shotDebounce = false
 
-                myscene;
+            myscene;
+            myprojectilegroup;
 
-                accelerationFactor = 500
-                turnAcceleration = 1000
-                turnRate = 145
-                movementSpeed = 500
-                maxMovementSpeed = 500
+            accelerationFactor = 500
+            turnAcceleration = 1000
+            turnRate = 145
+            movementSpeed = 500
+            maxMovementSpeed = 500
 
-                health = 100
-                shotAmount = 10
-                shotSpread = 5
-                fireRate = 120 // rounds per minute
-                shotSpeed = 1000
-                shotDamage = 10;
+            health = 100
+            shotAmount = 1
+            shotSpread = 5
+            fireRate = 600 // rounds per minute
+            shotSpeed = 1000
+            shotDamage = 10;
 
-                constructor(scene, x, y) {
-                    super(scene, x, y, 'player');
-                    scene.add.existing(this);   
-                    scene.physics.add.existing(this);
-                    this.setCollideWorldBounds(true);
+            UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
-                    this.setDamping(true)
-                    this.setDrag(.25, .25)
-                    this.setAngularDrag(100)
-                    this.setBounce(.5, .5)
-                    this.myscene = scene;
-                }
+            constructor(projectileGroup, scene, x, y) {
+                super(scene, x, y, 'player');
+                scene.add.existing(this);
+                scene.physics.add.existing(this);
+                this.setCollideWorldBounds(true);
 
-                isAlive() {
-                    if (this.health <= 0 ) { return false }
-                    return true
-                }
+                this.setDamping(true)
+                this.setDrag(.25, .25)
+                this.setAngularDrag(100)
+                this.setBounce(.5, .5)
+                this.myscene = scene;
+                this.myprojectilegroup = projectileGroup
+            }
 
-                updatePlayerMovement() {
-                    this.setAcceleration(0, 0)
-                    this.setAngularAcceleration(0)
+            shoot() {
+                let playerLookVector = new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation))
+                for (let i = 0; i < this.shotAmount; i++) {
+                    let dividend = ~~(this.shotAmount / 2)
+                    let bulletLookVector = playerLookVector.clone()
 
-                    let playerMouseDelta = new Phaser.Math.Vector2(this.myscene.input.mousePointer.x - this.x, this.myscene.input.mousePointer.y - this.y)
-                    let playerLookVector = new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation))
-
-                    this.setRotation(Math.atan2(playerMouseDelta.y, playerMouseDelta.x))
-
-                    let movementVector = new Phaser.Math.Vector2(0, 0)
-
-                    if (keys.W.isDown) { movementVector.add(new Phaser.Math.Vector2(0, -1)) }
-                    if (keys.A.isDown) { movementVector.add(new Phaser.Math.Vector2(-1, 0)) }
-                    if (keys.S.isDown) { movementVector.add(new Phaser.Math.Vector2(0, 1)) }
-                    if (keys.D.isDown) { movementVector.add(new Phaser.Math.Vector2(1, 0)) }
-
-                    movementVector.normalize()
-
-                    this.setAcceleration(this.movementSpeed * movementVector.x, this.movementSpeed * movementVector.y)
-                }
-
-                preUpdate(time, deltaTime) {
-                    if (!this.isAlive()) {
-                        this.destroy()
-                        return
-                    }
-
-                    if (this._iframeremainingtime > 0) {
-                        this._iframeremainingtime = Math.max(0, this._iframeremainingtime - deltaTime);
-                    }
-
-                    console.log(this._iframeremainingtime, this.health)
-                    this.updatePlayerMovement()
-                }
-
-                takeDamage(damage) {
-                    if (this._iframeremainingtime > 0) {
-                        return;
-                    }
-                    this._iframeremainingtime = this.iframeTime * 1000;
-                    this.health -= damage;
+                    bulletLookVector.rotate((this.shotSpread * Math.PI / 180) * (i - dividend))
+                    this.myprojectilegroup.fire(this.x, this.y, bulletLookVector, this.shotSpeed)
                 }
             }
+
+            isAlive() {
+                if (this.health <= 0) { return false }
+                return true
+            }
+
+            updatePlayerMovement() {
+                this.setAcceleration(0, 0)
+                this.setAngularAcceleration(0)
+
+                let playerMouseDelta = new Phaser.Math.Vector2(this.myscene.input.mousePointer.x - this.x, this.myscene.input.mousePointer.y - this.y)
+                let playerLookVector = new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation))
+
+                this.setRotation(Math.atan2(playerMouseDelta.y, playerMouseDelta.x))
+
+                let movementVector = new Phaser.Math.Vector2(0, 0)
+
+                if (keys.W.isDown) { movementVector.add(new Phaser.Math.Vector2(0, -1)) }
+                if (keys.A.isDown) { movementVector.add(new Phaser.Math.Vector2(-1, 0)) }
+                if (keys.S.isDown) { movementVector.add(new Phaser.Math.Vector2(0, 1)) }
+                if (keys.D.isDown) { movementVector.add(new Phaser.Math.Vector2(1, 0)) }
+
+                movementVector.normalize()
+
+                this.setAcceleration(this.movementSpeed * movementVector.x, this.movementSpeed * movementVector.y)
+            }
+
+            preUpdate(time, deltaTime) {
+                super.preUpdate(time, deltaTime)
+
+                if (!this.isAlive()) {
+                    this.destroy()
+                    return
+                }
+
+                if (this._iframeremainingtime > 0) {
+                    this._iframeremainingtime = Math.max(0, this._iframeremainingtime - deltaTime);
+                }
+
+                this._timesincelastshot += deltaTime
+                if (this._timesincelastshot >= (1 / (this.fireRate / 60) * 1000) && this.myscene.input.mousePointer.isDown) {
+                    this._timesincelastshot = 0;
+                    this.shoot()
+                }
+
+                this.updatePlayerMovement()
+            }
+
+            takeDamage(damage) {
+                if (this._iframeremainingtime > 0) {
+                    return;
+                }
+                this._iframeremainingtime = this.iframeTime * 1000;
+                this.health -= damage;
+            }
+        }
 
         // Enemey that runs around and always faces the player
         class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
@@ -214,15 +243,17 @@
             attackDamage = 5;
             alive = true;
 
+            UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+
             constructor(scene, x, y, projectileGroup) {
                 super(scene, x, y, 'SwarmEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
                 this._scene = scene;
                 this.setGravityY(0);
-                this.setScale(2);
+                this.setScale(.5);
                 this.move(this);
-                this.target = player; 
+                this.target = player;
                 this.setMaxVelocity(500, 500);
             }
 
@@ -231,7 +262,7 @@
             }
 
             isAlive() {
-                if (this.health <= 0 ) { return false }
+                if (this.health <= 0) { return false }
                 return true
             }
 
@@ -264,8 +295,9 @@
             }
 
             preUpdate(time, deltaTime) {
+                super.preUpdate(time, deltaTime)
                 if (!this.isAlive()) { this.kill(); return; }
- 
+
                 this.rotation = Math.atan2(this.target.y - this.y, this.target.x - this.x);
 
                 this._timesincelastmove += deltaTime;
@@ -314,75 +346,25 @@
             playerProjectileGroup = new ProjectileGroup(this);
             enemyProjectileGroup = new ProjectileGroup(this);
 
-            this.input.on('pointerdown', onMouse1Down)
-            this.input.on('pointerup', onMouse1Up)
+            player = new Player(playerProjectileGroup, this, 500, 500);
 
-            player = new Player(this, 400, 400);
-
-
-            for (let i = 1; i < 100; i++) {
+            for (let i = 1; i < 2; i++) {
                 createSwarmEnemy(this)
             }
-            
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
             keys = this.input.keyboard.addKeys('W, A, S, D');
-
-        }
-
-        function onMouse1Up() {
-            player.shooting = false;
-            if (!player.shotDebounce) {
-                player.shotDebounce = true;
-                player.myscene.time.delayedCall(
-                    1 / (player.fireRate / 60) * 1000,                // ms
-                    function () { player.shotDebounce = false },
-                    [],
-                    this
-                );
-            }
-        }
-
-        function shootPlayerBullet() {
-            let playerLookVector = new Phaser.Math.Vector2(Math.cos(player.rotation), Math.sin(player.rotation))
-            for (let i = 0; i < player.shotAmount; i++) {
-                let dividend = ~~(player.shotAmount / 2)
-                let bulletLookVector = playerLookVector.clone()
-
-                bulletLookVector.rotate((player.shotSpread * Math.PI / 180) * (i - dividend))
-                playerProjectileGroup.fire(player.x, player.y, bulletLookVector, player.shotSpeed)
-            }
-
-            if (player.shooting) {
-                player.shootTimer = this.time.delayedCall(
-                    1 / (player.fireRate / 60) * 1000,                // ms
-                    shootPlayerBullet,
-                    [],
-                    this
-                );
-            }
-        }
-
-        function onMouse1Down() {
-            player.shooting = true
-            player.shootTimer = player.myscene.time.delayedCall(
-                1 / (player.fireRate / 60) * 1000,                // ms
-                shootPlayerBullet,
-                [],
-                player.myscene
-            );
-
         }
 
         function update(time, delta) {
             let deltaSeconds = delta / 1000
             let timeSeconds = time / 1000
 
-            this.physics.overlap(player, enemies, function(player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
-            this.physics.overlap(enemies, playerProjectileGroup, function(enemy, playerProjectile) { enemy.takeDamage(player.shotDamage); playerProjectile.onHit(); } )
+            this.physics.overlap(player, enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
+            this.physics.overlap(enemies, playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(player.shotDamage); playerProjectile.onHit(enemy); })
+            this.physics.overlap(player, enemyProjectileGroup, function (player, enemyProjectile) { player.takeDamage(player.shotDamage); enemyProjectile.onHit(player); })
         }
-
     </script>
 
 </body>
