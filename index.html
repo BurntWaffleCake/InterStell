@@ -19,7 +19,7 @@
             physics: {
                 default: 'arcade',
                 arcade: {
-                    debug: true,
+                    // debug: true,
                     debugShowVelocity: true,
                 }
             },
@@ -65,7 +65,7 @@
             _secondsPassed = 0;
             _pierceCount = 0;
 
-            maxDistance = 250;
+            maxDistance = 1000;
             maxPierce = 0;
 
             constructor(scene, x, y, projectileType, config) { 
@@ -75,7 +75,6 @@
                 this._distanceTraveled = 0;
                 this._secondsPassed = 0;
                 this.setScale(.1, .1);
-                this.addListener("overlap", function() { console.log("Projectile overlaped") })
             }
 
             _testAlive() {
@@ -93,11 +92,8 @@
 
                 this._previousPosition = { x: this.x, y: this.y }
 
-                console.log(this._testAlive())
-
                 if (!this._testAlive()) {
                     this.disableBody(true, true);
-                    console.log("Projectile Killed")
                 }
             }
 
@@ -122,6 +118,10 @@
         }
 
         class Player extends Phaser.Physics.Arcade.Sprite {
+                _iframeremainingtime = 0;
+
+                iframeTime = .25; //seconds
+
                 shootTimer;
                 shooting = false
                 shotDebounce = false
@@ -135,15 +135,15 @@
                 maxMovementSpeed = 500
 
                 health = 100
-                shotAmount = 1
+                shotAmount = 5
                 shotSpread = 5
-                fireRate = 600 // rounds per minute
+                fireRate = 300 // rounds per minute
                 shotSpeed = 1000
-                shotDamage = 100;
+                shotDamage = 50;
 
                 constructor(scene, x, y) {
                     super(scene, x, y, 'player');
-                    scene.add.existing(this);
+                    scene.add.existing(this);   
                     scene.physics.add.existing(this);
                     this.setCollideWorldBounds(true);
 
@@ -180,24 +180,38 @@
                     this.setAcceleration(this.movementSpeed * movementVector.x, this.movementSpeed * movementVector.y)
                 }
 
-                preUpdate() {
+                preUpdate(time, deltaTime) {
                     if (!this.isAlive()) {
                         this.destroy()
                         return
                     }
+
+                    if (this._iframeremainingtime > 0) {
+                        this._iframeremainingtime = Math.max(0, this._iframeremainingtime - deltaTime);
+                    }
+
+                    console.log(this._iframeremainingtime, this.health)
                     this.updatePlayerMovement()
                 }
 
                 takeDamage(damage) {
+                    if (this._iframeremainingtime > 0) {
+                        return;
+                    }
+                    this._iframeremainingtime = this.iframeTime * 1000;
                     this.health -= damage;
                 }
             }
 
         // Enemey that runs around and always faces the player
         class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
-            health = 100;
-            attackDamage = 5;
+            _timesincelastmove = 0;
             _scene;
+
+            target;
+            health = 50;
+            moveDelay = 1; //seconds
+            attackDamage = 5;
             alive = true;
 
             constructor(scene, x, y, projectileGroup) {
@@ -205,10 +219,15 @@
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
                 this._scene = scene;
-                this.setCollideWorldBounds(true);
                 this.setGravityY(0);
                 this.setScale(.5);
-                this.move(this) 
+                this.move(this);
+                this.target = player; 
+                this.setMaxVelocity(500, 500);
+            }
+
+            setTarget(target) {
+                this.target = target
             }
 
             isAlive() {
@@ -221,25 +240,43 @@
                 this.alive = false;
             }
 
+            reflectPosition() {
+                if (this.x >= config.width + this.width) {
+                    this.x = 1
+                } else if (this.x <= 0 - this.width) {
+                    this.x = config.width - 1;
+                }
+
+                if (this.y >= config.height + this.height) {
+                    this.y = 1
+                } else if (this.y <= 0 - this.height) {
+                    this.y = config.height - 1;
+                }
+            }
+
             //moves the enemy to a random targeted location
             move() {
-                if (!this.alive) { return }
-                // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
-                // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
                 let newspotx = Phaser.Math.Between(1, 1200);
                 let newspoty = Phaser.Math.Between(1, 700);
                 this.setAccelerationX((newspotx - this.x) / 3);
                 this.setAccelerationY((newspoty - this.y) / 3);
-                setTimeout( function() { moveSwarmEnemies(); }, 0);
             }
 
-            preUpdate() {
-                console.log("Updating enemy", this.health);
+            preUpdate(time, deltaTime) {
                 if (!this.isAlive()) { this.kill(); return; }
+ 
+                this.rotation = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+
+                this._timesincelastmove += deltaTime;
+                if (this._timesincelastmove >= this.moveDelay * 1000) {
+                    this.move();
+                    this._timesincelastmove = 0;
+                }
+
+                this.reflectPosition();
             }
 
             takeDamage(damage) {
-                console.log(this.health, damage)
                 this.health -= damage;
             }
         }
@@ -262,21 +299,14 @@
             this.load.image('SwarmEnemy', 'assets/Enemy_1.png');
         }
 
-        // initializes a single Swarm Enemy
+        // initializes a single Runner Enemy
         function createSwarmEnemy(tempScene) {
             let myEnemy = new SwarmEnemy(tempScene, 100, 100);
+            myEnemy.target = player;
             enemies.push(myEnemy);
         }
 
         //moves all sprites in enemies[]
-        function moveSwarmEnemies() {
-            for (let i = 0; i < enemies.length; i++) {
-                enemies[i].move();
-                enemies[i].rotation = Math.atan2(player.y - enemies[i].y, player.x - enemies[i].x);
-            }
-
-        }
-
         function create() {
             let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
             playerProjectileGroup = new PlayerProjectileGroup(this);
@@ -285,7 +315,11 @@
 
             player = new Player(this, 400, 400);
 
-            createSwarmEnemy(this)
+
+            for (let i = 1; i < 100; i++) {
+                createSwarmEnemy(this)
+            }
+            
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
@@ -341,7 +375,7 @@
             let deltaSeconds = delta / 1000
             let timeSeconds = time / 1000
 
-            this.physics.overlap(player, enemies, function(player, targetEnemy) {  console.log(player, targetEnemy); player.takeDamage(targetEnemy.attackDamage); });
+            this.physics.overlap(player, enemies, function(player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
             this.physics.overlap(enemies, playerProjectileGroup, function(enemy, playerProjectile) { enemy.takeDamage(player.shotDamage); playerProjectile.onHit(); } )
         }
 
