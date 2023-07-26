@@ -19,7 +19,7 @@
             physics: {
                 default: 'arcade',
                 arcade: {
-                    debug: true,
+                    // debug: true,
                     debugShowVelocity: true,
                 }
             },
@@ -105,7 +105,7 @@
             fire(x, y, direction, speed = 100) {
                 direction.normalize()
 
-                this.body.reset(x, y);
+                this.enableBody(true,x, y, true, true);
                 this._previousPosition = { x: x, y: y } //reset previous position for distance calculation
 
                 this._distanceTraveled = 0;
@@ -158,23 +158,36 @@
         // Enemey that runs around and always faces the player
         class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
             health = 100;
+            alive = true;
+            _scene;
 
             constructor(scene, x, y, projectileGroup) {
                 super(scene, x, y, 'RunnerEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
+                this._scene = scene;
                 this.setCollideWorldBounds(true);
                 this.setGravityY(0);
+                this.move()
             }
 
-            //moves the enemy to a random targeted location
             move() {
+                if (!this.alive) { return }
+                else{
                 // guiTimer = this.time.delayedCall(1000, this.moveRight(), [], this); // delayed remove text call
                 // guiTimer1 = this.time.delayedCall(1000, this.moveLeft(), [], this); // delayed remove text call
                 let newspotx = Phaser.Math.Between(1, 1200);
                 let newspoty = Phaser.Math.Between(1, 700);
                 this.setAccelerationX((newspotx - this.x) / 3);
                 this.setAccelerationY((newspoty - this.y) / 3);
+                setTimeout( function() { moveRunnerEnemies(); }, 0);
+                }
+            }
+
+            //moves the enemy to a random targeted location
+
+            preUpdate(){
+                
             }
         }
 
@@ -209,7 +222,7 @@
         }
 
         //moves all sprites in enemies[]
-        function moveEnemies() {
+        function moveRunnerEnemies() {
             for (let i = 0; i < enemies.length; i++) {
                 enemies[i].move();
                 enemies[i].rotation = Math.atan2(player.y - enemies[i].y, player.x - enemies[i].x);
@@ -277,6 +290,20 @@
 
         }
 
+        function hurtEnemy(a, b, c){
+            console.log(a.health)
+            a.health -= 50;
+            b.disableBody(true, true)
+            console.log(a.health)
+            if(a.health <= 0){
+                killEnemy(a)
+            }
+        }
+
+        function killEnemy(a){
+            a.destroy()
+        }
+
         function updatePlayerMovement() {
             player.setAcceleration(0, 0)
             player.setAngularAcceleration(0)
@@ -303,11 +330,11 @@
             let deltaSeconds = delta / 1000
             let timeSeconds = time / 1000
 
-            this.physics.overlap(enemies, playerProjectileGroup, function () { console.log("projectile hit enemy") })
+            this.physics.overlap(enemies, playerProjectileGroup, hurtEnemy)
 
             updatePlayerMovement()
 
-            setTimeout(function () { moveEnemies(); }, 1000);
+            
         }
 
     </script>
