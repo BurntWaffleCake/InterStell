@@ -34,7 +34,7 @@
             //BigBalling2
         };
 
-        class PlayerProjectileGroup extends Phaser.Physics.Arcade.Group {
+        class ProjectileGroup extends Phaser.Physics.Arcade.Group {
             constructor(scene) {
                 super(scene.physics.world, scene);
 
@@ -135,11 +135,11 @@
                 maxMovementSpeed = 500
 
                 health = 100
-                shotAmount = 5
+                shotAmount = 10
                 shotSpread = 5
-                fireRate = 300 // rounds per minute
+                fireRate = 120 // rounds per minute
                 shotSpeed = 1000
-                shotDamage = 50;
+                shotDamage = 10;
 
                 constructor(scene, x, y) {
                     super(scene, x, y, 'player');
@@ -209,7 +209,7 @@
             _scene;
 
             target;
-            health = 50;
+            health = 150;
             moveDelay = 1; //seconds
             attackDamage = 5;
             alive = true;
@@ -220,7 +220,7 @@
                 scene.physics.add.existing(this);
                 this._scene = scene;
                 this.setGravityY(0);
-                this.setScale(.5);
+                this.setScale(2);
                 this.move(this);
                 this.target = player; 
                 this.setMaxVelocity(500, 500);
@@ -238,6 +238,7 @@
             kill() {
                 this.destroy();
                 this.alive = false;
+                console.log("Died")
             }
 
             reflectPosition() {
@@ -285,6 +286,7 @@
         var player;
 
         var playerProjectileGroup;
+        var enemyProjectileGroup;
 
         //Keyboard controls
         var cursors;
@@ -309,7 +311,9 @@
         //moves all sprites in enemies[]
         function create() {
             let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
-            playerProjectileGroup = new PlayerProjectileGroup(this);
+            playerProjectileGroup = new ProjectileGroup(this);
+            enemyProjectileGroup = new ProjectileGroup(this);
+
             this.input.on('pointerdown', onMouse1Down)
             this.input.on('pointerup', onMouse1Up)
 
