@@ -70,8 +70,8 @@
             UUID;
 
             maxDistance = 1000;
-            maxPierce = 1;
-            damage = 10;
+            maxPierce = 2;
+            damage = 25;
 
             constructor(scene, x, y, spriteName) {
                 super(scene, x, y, spriteName);
@@ -158,7 +158,7 @@
 
             shotAmount = 1
             shotSpread = 5
-            fireRate = 600 // rounds per minute
+            fireRate = 240 // rounds per minute
 
             shotSpeed = 1000
             shotDamage = 10;
@@ -263,7 +263,7 @@
             _scene;
 
             target;
-            health = 150;
+            health = 100;
             moveDelay = 1; //seconds
             attackDamage = 5;
             alive = true;
