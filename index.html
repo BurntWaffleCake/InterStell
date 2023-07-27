@@ -70,7 +70,7 @@
             UUID;
 
             maxDistance = 1000;
-            maxPierce = 1;
+            maxPierce = 0;
             damage = 10;
 
             constructor(scene, x, y, spriteName) {
@@ -87,6 +87,7 @@
                 this._distanceTraveled = 0;
                 this._secondsPassed = 0;
                 this._pierceCount = 0;
+                this._piercedObjects = []
             }
 
             _testAlive() {
@@ -111,7 +112,6 @@
             }
 
             fire(x, y, direction, config) {
-                console.log(config)
                 this.resetValues(x, y);
 
                 this.enableBody(true, x, y, true, true);
@@ -119,7 +119,7 @@
                 this.setVisible(true);
 
                 this.setBodySize(config.width || 10, config.height || 10, true);
-                this.setDisplaySize(25, 5)
+                this.setDisplaySize(config.width || 10, config.height || 10)
                 this.maxDistance = config.maxDistance;
                 this.maxPierce = config.maxPierce;
                 this.damage = config.damage;
@@ -195,7 +195,9 @@
                         speed: this.shotSpeed,
                         damage: this.shotDamage,
                         maxPierce: this.shotPierce,
-                        maxDistance: this.shotDistance
+                        maxDistance: this.shotDistance,
+                        width: 25,
+                        height: 10,
                     })
                 }
             }
@@ -251,12 +253,12 @@
                 if (this._iframeremainingtime > 0) {
                     return;
                 }
+                console.log("player took damage", damage)
+
                 this._iframeremainingtime = this.iframeTime * 1000;
                 this.health -= damage;
             }
         }
-
-        // Enemey that runs around and always faces the player
 
         class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
             _timesincelastmove = 0;
@@ -271,7 +273,7 @@
             UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
             constructor(scene, x, y, projectileGroup) {
-                super(scene, x, y, 'SwarmEnemy');
+                super(scene, x, y, 'swarmEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
                 this._scene = scene;
@@ -350,20 +352,20 @@
             moveDelay = 1; //seconds
             shotDelay = 3; //seconds
             shotEnvelope = 1.5 // randomize to min and max
-            attackDamage = 5;
+            attackDamage = 0;
             alive = true;
 
             UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
             constructor(scene, x, y, projectileGroup) {
-                super(scene, x, y, 'SwarmEnemy');
+                super(scene, x, y, 'shooterEnemy');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
                 this._scene = scene;
                 this._projectileGroup = projectileGroup
 
                 this.setGravityY(0);
-                this.setScale(.5);
+                this.setScale(.25);
                 this.move(this);
                 this.target = player;
                 this.setMaxVelocity(150, 150);
@@ -443,6 +445,91 @@
             }
         }
 
+        class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
+            _scene;
+
+            health = 10;
+            attackDamage = 10;
+            alive = true;
+            
+            useWave = true;
+            waveAmplitude = 0
+            waveTimeScale = 0
+
+            moveDirection;
+
+            UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+
+            constructor(scene, x, y, direction) {
+                super(scene, x, y, 'runnerEnemy');
+                scene.add.existing(this);
+                scene.physics.add.existing(this);
+                this._scene = scene;
+                this.setGravityY(0);
+                this.setScale(.1);
+                this.target = player;
+                
+                this.moveDirection = direction.normalize().scale(Phaser.Math.Between(400, 600))
+                this.waveAmplitude = Phaser.Math.Between(0, 300)
+                this.waveTimeScale = Phaser.Math.Between(1, 5)
+
+                this.setBodySize(50, 25, true)
+                this.setDisplaySize(50, 25)
+                this.width = 50
+                this.height = 25
+            }
+
+            create() {
+                console.log("created")
+
+            }
+
+            isAlive() {
+                if (this.health <= 0) { return false }
+                return true
+            }
+
+            kill() {
+                this.destroy();
+                this.alive = false;
+                console.log("Died")
+            }
+
+            reflectPosition() {
+                if (this.x >= config.width + this.width) {
+                    this.x = 1
+                } else if (this.x <= 0 - this.width) {
+                    this.x = config.width - 1;
+                }
+
+                if (this.y >= config.height + this.height) {
+                    this.y = 1
+                } else if (this.y <= 0 - this.height) {
+                    this.y = config.height - 1;
+                }
+            }
+
+            preUpdate(time, deltaTime) {
+                super.preUpdate(time, deltaTime)
+                if (!this.isAlive()) { this.kill(); return; }
+
+                this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
+                this.reflectPosition();
+
+                if (this.useWave) {
+                    let moveVector = this.moveDirection.clone()
+                    let rightVector = this.moveDirection.clone().normalize().rotate(Math.PI /2).scale(this.waveAmplitude * Math.cos(this.waveTimeScale * time / 1000))
+
+                    this.body.velocity = moveVector.add(rightVector)
+                }
+            }
+
+            takeDamage(damage) {
+                console.log(damage, "took damage")
+                this.health -= damage;
+            } 
+        }
+
         var game = new Phaser.Game(config);
         var player;
 
@@ -459,21 +546,26 @@
         function preload() {
             this.load.image('stars', 'assets/images/newstarbackground.png');
             this.load.image('player', 'assets/images/maincharacter.png');
-            this.load.image('SwarmEnemy', 'assets/images/Enemy_1.png');
+            
+            this.load.image('swarmEnemy', 'assets/images/Enemy_1.png');
+            this.load.image('shooterEnemy', 'assets/images/Imp.png')
+            this.load.image('runnerEnemy', 'assets/images/Rocket.png')
+
             this.load.image('playerLaser', 'assets/images/PlayerLaser.png')
             this.load.image('enemyLaser', 'assets/images/EnemyLaser.png')
+
             this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3')
         }
 
         // initializes a single Runner Enemy
         function createSwarmEnemy(tempScene) {
-            let myEnemy = new SwarmEnemy(tempScene, 100, 100);
-            myEnemy.target = player;
-            enemies.push(myEnemy);
+                let myEnemy = new RunnerEnemy(tempScene, 100, 100, new Phaser.Math.Vector2(1, 1));
+                myEnemy.target = player;
+                enemies.push(myEnemy);
 
-            let myShooter = new ShooterEnemy(tempScene, 100, 100, enemyProjectileGroup)
-            myShooter.target = player
-            enemies.push(myShooter)
+            // let myShooter = new ShooterEnemy(tempScene, 100, 100, enemyProjectileGroup)
+            // myShooter.target = player
+            // enemies.push(myShooter)
         }
 
         //moves all sprites in enemies[]
@@ -482,9 +574,9 @@
             playerProjectileGroup = new ProjectileGroup(this, 'playerLaser');
             enemyProjectileGroup = new ProjectileGroup(this, 'enemyLaser');
 
-            player = new Player(this, 500, 500, playerProjectileGroup);
+            player = new Player(this, config.width / 2, config.height / 2, playerProjectileGroup);
 
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= 50; i++) {
                 createSwarmEnemy(this)
             }
 
@@ -499,7 +591,7 @@
 
             this.physics.overlap(player, enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
             this.physics.overlap(enemies, playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
-            this.physics.overlap(player, enemyProjectileGroup, function (player, enemyProjectile) { player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
+            this.physics.overlap(player, enemyProjectileGroup, function (player, enemyProjectile) { console.log(enemyProjectile.damage, player.health);  player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
         }
     </script>
 
