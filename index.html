@@ -42,7 +42,7 @@
                 // Initialize the group
                 this.createMultiple({
                     classType: Projectile, // This is the class we create just below
-                    frameQuantity: 200, // Create 200 instances in the pool
+                    frameQuantity: 1000, // Create 200 instances in the pool
                     active: false,
                     visible: false,
                     key: spriteName
@@ -274,12 +274,19 @@
                     this.shotDamage += 1;
                     this.shotSpeed += 100;
                     this.shotPierce += 1;
-                    this.levelreq+=100;
+                    this.levelreq = Math.floor(this.levelreq * 1.25)
                     this.fireRate+=100;
                     createShooterEnemy(this.myscene);
                     createSwarmEnemy(this.myscene);
                     console.log("level up");
                     gui.setText("HP: "+this.health+"  Level: "+this.level);
+                    if(this.level == 2){
+                        for (let i = 1; i <= 4; i++) {
+                            createShooterEnemy(this.myscene)
+                        }
+                    }else if(this.level >= 2){
+                        createShooterEnemy(this.myscene);
+                    }
                 }
                 gui.setText(("HP: "+this.health+"  |  Level: "+this.level+"  |  XP Needed: "+(this.levelreq-this.xp)));
             }
@@ -386,7 +393,7 @@
             target;
             health = 150;
             moveDelay = 1; //seconds
-            shotDelay = 1; //seconds
+            shotDelay = 2; //seconds
             shotEnvelope = .5 // randomize to min and max
             attackDamage = 5;
             alive = true;
@@ -562,9 +569,9 @@
                 createSwarmEnemy(this)
             }
 
-            for (let i = 1; i <= 4; i++) {
-                createShooterEnemy(this)
-            }
+            // for (let i = 1; i <= 4; i++) {
+            //     createShooterEnemy(this)
+            // }
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
