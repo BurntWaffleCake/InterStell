@@ -136,9 +136,39 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     fireRate = 100 // rounds per minute
 
     shotSpeed = 1000
-    shotDamage = 5;
+    shotDamage = 10000;
     shotPierce = 0;
     shotDistance = 10000;
+
+    options = [];
+    type;
+    rarity;
+
+    used;
+
+    img1;
+    img2;
+    img3;
+
+    text1;
+    text2;
+    text3;
+
+    commonUpgradePics = ['bulletSpeedCommon', 'damageCommon', 'fireRateCommon', 'maxPierceCommon', 'shotSpreadCommon', 'vampCommon'];
+    rareUpgradePics = ['bulletSpeedRare', 'damageRare', 'fireRateRare', 'maxPierceRare', 'shotSpreadRare', 'vampRare'];
+    epicUpgradePics = ['bulletSpeedEpic', 'damageEpic', 'fireRateEpic', 'maxPierceEpic', 'shotSpreadEpic', 'vampEpic'];
+    legendaryUpgradePics = ['bulletSpeedLegendary', 'damageLegendary', 'fireRateLegendary', 'maxPierceLegendary', 'shotSpreadLegendary', 'vampLegendary'];
+    mythicUpgradePics = ['bulletSpeedMythic', 'damageMythic', 'fireRateMythic', 'maxPierceMythic', 'shotSpreadMythic', 'vampMythic'];
+
+    commonUpgradeEffects = [200, 4, 40, 2, 1, .125];
+    rareUpgradeEffects = [400, 8, 80, 4, 2, .25];
+    epicUpgradeEffects = [800, 16, 160, 8, 4, .5];
+    legendaryUpgradeEffects = [1600, 320, 32, 16, 8, 1];
+    MythicUpgradeEffects = [3200, 64, 640, 32, 16, 2];
+
+    upgradePics = [this.commonUpgradePics, this.rareUpgradePics, this.epicUpgradePics, this.legendaryUpgradePics, this.mythicUpgradePics];
+    upgradeEffects = [this.commonUpgradeEffects, this.rareUpgradeEffects, this.epicUpgradeEffects, this.legendaryUpgradeEffects, this.MythicUpgradeEffects]
+    types = [this.shotSpeed, this.shotDamage, this.fireRate, this.shotPierce, this.shotAmount, this.vamp];
 
     vamp = 0;
 
@@ -157,6 +187,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.setMaxVelocity(this.maxMovementSpeed, this.maxMovementSpeed)
         this.myscene = scene;
         this.myprojectilegroup = scene.playerProjectileGroup
+
+        this.text1 = scene.add.text(160, 385, '', { fontSize: '50px', fill: '#FFFFFF', font: '35px courier' });
+        this.text2 = scene.add.text(160, 585, '', { fontSize: '50px', fill: '#FFFFFF', font: '35px courier' });
+        this.text3 = scene.add.text(160, 785, '', { fontSize: '50px', fill: '#FFFFFF', font: '35px courier' });
     }
 
     shoot() {
@@ -214,6 +248,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             return
         }
 
+        if (this.health > 100) {
+            this.health = 100;
+        }
+
         if (this._iframeremainingtime > 0) {
             this._iframeremainingtime = Math.max(0, this._iframeremainingtime - deltaTime);
         }
@@ -225,6 +263,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.updatePlayerMovement()
+
+        this.myscene.gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
     }
 
     takeDamage(damage) {
@@ -233,39 +273,230 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         }
         this._iframeremainingtime = this.iframeTime * 1000;
         this.health -= damage;
-        this.myscene.gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
     }
 
     checkxp() {
         if (this.xp >= this.levelreq) {
+            if (this.img1) {
+                this.img1.setVisible(false);
+                this.img2.setVisible(false);
+                this.img3.setVisible(false);
+                this.text1.setText('');
+                this.text2.setText('');
+                this.text3.setText('');
+            }
             this.xp -= this.levelreq;
             this.level += 1;
             this.health += 25;
             if (this.health > 100) {
                 this.health = 100;
             }
-            if (this.level % 3 ==0) {
-                this.shotAmount += 1;
-            }
-            this.shotDamage += 1;
-            this.shotSpeed += 100;
-            this.shotPierce += 1;
             this.levelreq = Math.floor(this.levelreq * 1.25)
-            this.fireRate += 10;
-            this.myscene.createShooterEnemy(this.myscene);
-            this.myscene.createSwarmEnemy(this.myscene);
-
-            console.log("level up");
-            this.myscene.gui.setText("HP: " + this.health + "  Level: " + this.level);
             if (this.level == 2) {
-                for (let i = 1; i <= 4; i++) {
+                for (let i = 1; i <= 2; i++) {
                     this.myscene.createShooterEnemy(this.myscene)
                 }
             } else if (this.level >= 2) {
                 this.myscene.createShooterEnemy(this.myscene);
+                this.myscene.createSwarmEnemy(this.myscene);
             }
+            this.rarity = 0;
+            let rarityVal = Phaser.Math.Between(1, 10000)
+            if (rarityVal <= 5000) {
+                this.rarity = 0;
+            } else if (rarityVal >= 5001 && rarityVal <= 8000) {
+                this.rarity = 1;
+            } else if (rarityVal >= 8001 && rarityVal <= 9000) {
+                this.rarity = 2;
+            } else if (rarityVal >= 9000 && rarityVal <= 9500) {
+                this.rarity = 3;
+            } else if (rarityVal >= 9500 && rarityVal <= 10000) {
+                this.rarity = 4;
+            }
+
+            this.used = [];
+
+            // for(let i = 0; i < 3; i++){
+            this.type = Phaser.Math.Between(0, 5);
+            while (this.used.includes(this.type)) {
+                this.type = Phaser.Math.Between(0, 5);
+            }
+            this.img1 = this.myscene.add.image(100, 400 + (0), this.upgradePics[this.rarity][this.type]);
+            this.img1.setScale(.075);
+            this.used.push(this.type);
+            if (this.type == 0) {
+                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
+            }
+            if (this.type == 1) {
+                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
+            }
+            if (this.type == 2) {
+                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
+            }
+            if (this.type == 3) {
+                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
+            }
+            if (this.type == 4) {
+                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
+            }
+            if (this.type == 5) {
+                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
+            }
+
+            this.type = Phaser.Math.Between(0, 5);
+            while (this.used.includes(this.type)) {
+                this.type = Phaser.Math.Between(0, 5);
+            }
+            this.img2 = this.myscene.add.image(100, 400 + (200), this.upgradePics[this.rarity][this.type]);
+            this.img2.setScale(.075);
+            this.used.push(this.type);
+            if (this.type == 0) {
+                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
+            }
+            if (this.type == 1) {
+                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
+            }
+            if (this.type == 2) {
+                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
+            }
+            if (this.type == 3) {
+                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
+            }
+            if (this.type == 4) {
+                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
+            }
+            if (this.type == 5) {
+                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
+            }
+
+            this.type = Phaser.Math.Between(0, 5);
+            while (this.used.includes(this.type)) {
+                this.type = Phaser.Math.Between(0, 5);
+            }
+            this.img3 = this.myscene.add.image(100, 400 + (400), this.upgradePics[this.rarity][this.type]);
+            this.img3.setScale(.075);
+            this.used.push(this.type);
+            if (this.type == 0) {
+                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
+            }
+            if (this.type == 1) {
+                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
+            }
+            if (this.type == 2) {
+                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
+            }
+            if (this.type == 3) {
+                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
+            }
+            if (this.type == 4) {
+                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
+            }
+            if (this.type == 5) {
+                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
+            }
+
+            this.options.push(this.upgradeEffects[3][this.type]);
+            console.log(this.used);
         }
-        this.myscene.gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
+    }
+
+    selectOne() {
+        console.log("selecting")
+
+        this.type = this.used[0]
+        console.log(this.type)
+        if (this.type == 0) {
+            this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 1) {
+            this.shotDamage += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 2) {
+            this.fireRate += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 3) {
+            this.shotPierce += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 4) {
+            this.shotAmount += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 5) {
+            this.vamp += this.upgradeEffects[this.rarity][this.type]
+        }
+        this.used = [];
+
+        this.img1.setVisible(false);
+        this.img2.setVisible(false);
+        this.img3.setVisible(false);
+        this.text1.setText('');
+        this.text2.setText('');
+        this.text3.setText('');
+    }
+
+    selectTwo() {
+        console.log("selecting")
+
+        this.type = this.used[1]
+        console.log(this.type)
+        if (this.type == 0) {
+            this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 1) {
+            this.shotDamage += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 2) {
+            this.fireRate += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 3) {
+            this.shotPierce += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 4) {
+            this.shotAmount += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 5) {
+            this.vamp += this.upgradeEffects[this.rarity][this.type]
+        }
+        this.used = [];
+
+        this.img1.setVisible(false);
+        this.img2.setVisible(false);
+        this.img3.setVisible(false);
+        this.text1.setText('');
+        this.text2.setText('');
+        this.text3.setText('');
+    }
+
+    selectThree() {
+        console.log("selecting")
+
+        this.type = this.used[2]
+        console.log(this.type)
+        if (this.type == 0) {
+            this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 1) {
+            this.shotDamage += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 2) {
+            this.fireRate += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 3) {
+            this.shotPierce += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 4) {
+            this.shotAmount += this.upgradeEffects[this.rarity][this.type]
+        }
+        if (this.type == 5) {
+            this.vamp += this.upgradeEffects[this.rarity][this.type]
+        }
+        this.used = [];
+
+        this.img1.setVisible(false);
+        this.img2.setVisible(false);
+        this.img3.setVisible(false);
+        this.text1.setText('');
+        this.text2.setText('');
+        this.text3.setText('');
     }
 }
 
@@ -274,7 +505,7 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
     _scene;
 
     target;
-    health = 50;
+    health = 30;
     moveDelay = 1; //seconds
     attackDamage = 5;
     alive = true;
@@ -287,9 +518,9 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
         this._scene = scene;
         this.setGravityY(0);
-        this.setScale(.5);
+        this.setScale(.25);
         this.move(this);
-        this.setMaxVelocity(150, 150);
+        this.setMaxVelocity(300, 300);
     }
 
     setTarget(target) {
@@ -307,10 +538,8 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
         this._scene.player.xp += 5;
         this._scene.player.checkxp();
         this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createSwarmEnemy(this._scene));
-        this._scene.player.health += this._scene.player.vamp;
-        if (this._scene.player.health > 100) {
-            this._scene.player.health = 100;
-        }
+
+        this._scene.player.health = Math.min(100, this._scene.player.health += this._scene.player.vamp)
     }
 
     //moves the enemy to a random targeted location
@@ -388,6 +617,10 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
     kill() {
         this.destroy();
         this.alive = false;
+
+        this._scene.player.xp += 25;
+        this._scene.player.checkxp()
+        this._scene.player.health = Math.min(100, this._scene.player.health += this._scene.player.vamp)
     }
 
     shoot() {
@@ -529,7 +762,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     flashGraphic;
 
     target;
-    health = 100;
+    health = 150;
     moveDelay = 1; //seconds
     shotDelay = 2; //seconds
     shotEnvelope = .5 // randomize to min and max
@@ -549,6 +782,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
         this.setScale(.25);
         this.move(this);
         this.setMaxVelocity(150, 150);
+        this.target = scene.player
     }
 
     setTarget(target) {
@@ -566,10 +800,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
         this._scene.player.xp += 10;
         this._scene.player.checkxp();
         this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createShooterEnemy(this._scene));
-        this._scene.player.health += this._scene.player.vamp;
-        if (this._scene.player.health > 100) {
-            this._scene.player.health = 100;
-        }
+        this._scene.player.health = Math.min(100, this._scene.player.health += this._scene.player.vamp)
     }
 
     //moves the enemy to a random targeted location
@@ -583,7 +814,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     shoot() {
         this._projectileGroup.fire(this.x, this.y, new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation)), {
             speed: 500,
-            damage: 5,
+            damage: 10,
             maxPierce: 0,
             maxDistance: 1000,
             width: 10,
@@ -659,6 +890,11 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
+        this._scene.player.xp += 1;
+        this._scene.player.checkxp();
+        this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createShooterEnemy(this._scene));
+        this._scene.player.health = Math.min(100, this._scene.player.health += this._scene.player.vamp)
+
         this.destroy();
         this.alive = false;
     }
@@ -698,6 +934,10 @@ class GameScreen extends Phaser.Scene {
     guiTimer;
     gui;
 
+    one;
+    two;
+    three;
+
     enemies = [];
 
     constructor() {
@@ -706,20 +946,56 @@ class GameScreen extends Phaser.Scene {
 
     preload() {
         this.load.image('stars', 'assets/images/newstarbackground.png');
-            this.load.image('player', 'assets/images/maincharacter.png');
+        this.load.image('player', 'assets/images/maincharacter.png');
 
-            this.load.image('swarmEnemy', 'assets/images/Swarm.png');
-            this.load.image('shooterEnemy', 'assets/images/Imp.png')
-            this.load.image('runnerEnemy', 'assets/images/Rocket.png')
-            this.load.image('tankEnemy', 'assets/images/Tank.png')
+        this.load.image('swarmEnemy', 'assets/images/Swarm.png');
+        this.load.image('shooterEnemy', 'assets/images/Imp.png')
+        this.load.image('runnerEnemy', 'assets/images/Rocket.png')
+        this.load.image('tankEnemy', 'assets/images/Tank.png')
 
-            this.load.image('asteroid', 'assets/images/Asteroid.png')
-            this.load.image('asteroidChunk', 'assets/images/AsteroidChunk.png')
+        this.load.image('asteroid', 'assets/images/Asteroid.png')
+        this.load.image('asteroidChunk', 'assets/images/AsteroidChunk.png')
 
-            this.load.image('playerLaser', 'assets/images/PlayerLaser.png')
-            this.load.image('enemyLaser', 'assets/images/EnemyLaser.png')
+        this.load.image('playerLaser', 'assets/images/PlayerLaser.png')
+        this.load.image('enemyLaser', 'assets/images/EnemyLaser.png')
 
-            this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3')
+        this.load.image('bulletSpeedCommon', 'assets/images/bulletspeed_common.png')
+        this.load.image('bulletSpeedRare', 'assets/images/bulletspeed_rare.png')
+        this.load.image('bulletSpeedEpic', 'assets/images/bulletspeed_epic.png')
+        this.load.image('bulletSpeedLegendary', 'assets/images/bulletspeed_legendary.png')
+        this.load.image('bulletSpeedMythic', 'assets/images/bulletspeed_mythic.png')
+
+        this.load.image('damageCommon', 'assets/images/Damage_Common.png')
+        this.load.image('damageRare', 'assets/images/Damage_Rare.png')
+        this.load.image('damageEpic', 'assets/images/Damage_Epic.png')
+        this.load.image('damageLegendary', 'assets/images/Damage_Legendary.png')
+        this.load.image('damageMythic', 'assets/images/Damage_Mythic.png')
+
+        this.load.image('fireRateCommon', 'assets/images/fire_rate_common.png')
+        this.load.image('fireRateRare', 'assets/images/fire_rate_rare.png')
+        this.load.image('fireRateEpic', 'assets/images/fire_rate_epic.png')
+        this.load.image('fireRateLegendary', 'assets/images/fire_rate_legendary.png')
+        this.load.image('fireRateMythic', 'assets/images/fire_rate_mythic.png')
+
+        this.load.image('maxPierceCommon', 'assets/images/MaxPierceCommon.png')
+        this.load.image('maxPierceRare', 'assets/images/MaxPierceRare.png')
+        this.load.image('maxPierceEpic', 'assets/images/MaxPierceEpic.png')
+        this.load.image('maxPierceLegendary', 'assets/images/MaxPierceLegendary.png')
+        this.load.image('maxPierceMythic', 'assets/images/MaxPierceMythic.png')
+
+        this.load.image('shotSpreadCommon', 'assets/images/ShotSpreadCommon.png')
+        this.load.image('shotSpreadRare', 'assets/images/ShotSpreadRare.png')
+        this.load.image('shotSpreadEpic', 'assets/images/ShotSpreadEpic.png')
+        this.load.image('shotSpreadLegendary', 'assets/images/ShotSpreadLegendary.png')
+        this.load.image('shotSpreadMythic', 'assets/images/ShotSpreadMythic.png')
+
+        this.load.image('vampCommon', 'assets/images/Vamp_Common_new.png')
+        this.load.image('vampRare', 'assets/images/Vamp_Rare.png')
+        this.load.image('vampEpic', 'assets/images/Vamp_Epic_new.png')
+        this.load.image('vampLegendary', 'assets/images/Vamp_Legendary.png')
+        this.load.image('vampMythic', 'assets/images/Vamp_Mythic.png')
+
+        this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3')
     }
 
     getRandomPointOnEdge() {
@@ -781,14 +1057,18 @@ class GameScreen extends Phaser.Scene {
 
         this.player = new Player(this, 500, 500, this.playerProjectileGroup);
 
-        for (let i=0; i < 5; i++) {
+        for (let i = 0; i < 5; i++) {
             this.createSwarmEnemy();
         }
-     
+
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys('W, A, S, D');
 
         this.gui = this.add.text(450, 1100, ("HP: " + this.player.health + "  |  Level: " + this.player.level + "  |  XP Needed: " + (this.player.levelreq - this.player.xp)), { fontSize: '50px', fill: '#FFFFFF', font: '50px courier' });
+
+        this.one = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+        this.two = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+        this.three = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
     }
 
     reflectPosition(target) {
@@ -820,6 +1100,16 @@ class GameScreen extends Phaser.Scene {
         this.physics.overlap(this.player, this.enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
         this.physics.overlap(this.enemies, this.playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
         this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
+
+        if (Phaser.Input.Keyboard.JustDown(this.one)) {
+            this.player.selectOne();
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.two)) {
+            this.player.selectTwo();
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.three)) {
+            this.player.selectThree();
+        }
     }
 }
 
