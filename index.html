@@ -3,9 +3,17 @@
 <html>
 
 <head>
+
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+
+</head>
+
+<body>
+
     <script>
+
         var config = {
+            mode: Phaser.Scale.CENTER_BOTH, 
             type: Phaser.AUTO,
             width: 1900,
             height: 1180,
@@ -61,9 +69,9 @@
 
             UUID;
 
-            maxDistance = 0;
-            maxPierce = 0;
-            damage = 0;
+            maxDistance = 1000;
+            maxPierce = 1;
+            damage = 10;
 
             constructor(scene, x, y, spriteName) {
                 super(scene, x, y, spriteName);
@@ -79,15 +87,9 @@
                 this._distanceTraveled = 0;
                 this._secondsPassed = 0;
                 this._pierceCount = 0;
-                this._piercedObjects = []
-
-                this.maxDistance = 0;
-                this.maxPierce = 0;
-                this.damage = 0;
             }
 
             _testAlive() {
-                if (!this.active) { return false }
                 if (this.y <= 0 || this.y >= config.height || this.x <= 0 || this.x >= config.width) { return false }
                 if (this.maxDistance <= this._distanceTraveled) { return false };
                 if (this._pierceCount > this.maxPierce) { return false };
@@ -98,7 +100,6 @@
                 super.preUpdate(time, delta);
 
                 if (!this._testAlive()) {
-                    this.active = false;
                     this.disableBody(true, true);
                 }
 
@@ -110,6 +111,7 @@
             }
 
             fire(x, y, direction, config) {
+                console.log(config)
                 this.resetValues(x, y);
 
                 this.enableBody(true, x, y, true, true);
@@ -149,24 +151,52 @@
             accelerationFactor = 1000
             turnAcceleration = 1000
             turnRate = 145
-            movementSpeed = 3000
+            movementSpeed = 1000
             maxMovementSpeed = 250
 
             health = 100
-            xp = 0;
+            xp = 45;
             level = 1;
             levelreq = 50
+            shotSpread = 4
 
-            shotAmount = 100
-            shotSpread = 5
-            fireRate = 100 // rounds per minute
+            options  = [];
+            type;
+            rarity;
 
+            used;
+
+            img1;
+            img2;
+            img3;
+
+            text1;
+            text2;
+            text3;
+
+            shotAmount = 1
+            fireRate = 80 // rounds per minute
             shotSpeed = 1000
             shotDamage = 10;
             shotPierce = 0;
             shotDistance = 10000;
-
             vamp = 0;
+
+            commonUpgradePics = ['bulletSpeedCommon', 'damageCommon', 'fireRateCommon', 'maxPierceCommon', 'shotSpreadCommon', 'vampCommon'];
+            rareUpgradePics = ['bulletSpeedRare', 'damageRare', 'fireRateRare', 'maxPierceRare', 'shotSpreadRare', 'vampRare'];
+            epicUpgradePics = ['bulletSpeedEpic', 'damageEpic', 'fireRateEpic', 'maxPierceEpic', 'shotSpreadEpic', 'vampEpic'];
+            legendaryUpgradePics = ['bulletSpeedLegendary', 'damageLegendary', 'fireRateLegendary', 'maxPierceLegendary', 'shotSpreadLegendary', 'vampLegendary'];
+            mythicUpgradePics = ['bulletSpeedMythic', 'damageMythic', 'fireRateMythic', 'maxPierceMythic', 'shotSpreadMythic', 'vampMythic'];
+
+            commonUpgradeEffects = [200, 4, 40, 2, 1, .125];
+            rareUpgradeEffects = [400, 8, 80, 4, 2, .25];
+            epicUpgradeEffects = [800, 16, 160, 8, 4, .5];
+            legendaryUpgradeEffects = [1600, 320, 32, 16, 8, 1];
+            MythicUpgradeEffects = [3200, 64, 640, 32, 16, 2];
+
+            upgradePics = [this.commonUpgradePics, this.rareUpgradePics, this.epicUpgradePics, this.legendaryUpgradePics, this.mythicUpgradePics];
+            upgradeEffects = [this.commonUpgradeEffects, this.rareUpgradeEffects, this.epicUpgradeEffects, this.legendaryUpgradeEffects, this.MythicUpgradeEffects]
+            types = [this.shotSpeed, this.shotDamage, this.fireRate, this.shotPierce, this.shotAmount, this.vamp];
 
             UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
@@ -174,7 +204,7 @@
                 super(scene, x, y, 'player');
                 scene.add.existing(this);
                 scene.physics.add.existing(this);
-                //this.setCollideWorldBounds(true);
+                this.setCollideWorldBounds(true);
 
                 this.setDamping(true)
                 this.setDrag(.25, .25)
@@ -183,11 +213,14 @@
                 this.setMaxVelocity(this.maxMovementSpeed, this.maxMovementSpeed)
                 this.myscene = scene;
                 this.myprojectilegroup = projectileGroup
+                this.text1 = this.myscene.add.text(160, 385, '', {fontSize: '50px', fill: '#FFFFFF', font: '35px courier'});
+                this.text2 = this.myscene.add.text(160, 585, '', {fontSize: '50px', fill: '#FFFFFF', font: '35px courier'});
+                this.text3 = this.myscene.add.text(160, 785, '', {fontSize: '50px', fill: '#FFFFFF', font: '35px courier'});
             }
 
             shoot() {
                 let playerLookVector = new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation))
-
+                
                 for (let i = 0; i < this.shotAmount; i++) {
                     let dividend = ~~(this.shotAmount / 2)
                     let bulletLookVector = playerLookVector.clone()
@@ -198,9 +231,7 @@
                         speed: this.shotSpeed,
                         damage: this.shotDamage,
                         maxPierce: this.shotPierce,
-                        maxDistance: this.shotDistance,
-                        width: 15,
-                        heigh: 10
+                        maxDistance: this.shotDistance
                     })
                 }
             }
@@ -236,6 +267,7 @@
 
                 if (!this.isAlive()) {
                     this.destroy()
+                    gui.setText('');
                     return
                 }
 
@@ -258,28 +290,238 @@
                 }
                 this._iframeremainingtime = this.iframeTime * 1000;
                 this.health -= damage;
-                gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
+                gui.setText(("HP: "+this.health+"  |  Level: "+this.level+"  |  XP Needed: "+(this.levelreq-this.xp)));
             }
 
-            checkxp() {
-                if (this.xp >= this.levelreq) {
-                    this.xp -= this.levelreq;
-                    this.level += 1;
+            checkxp(){
+                if(this.xp >= this.levelreq){
+                    if(this.img1){
+                        this.img1.setVisible(false);
+                        this.img2.setVisible(false);
+                        this.img3.setVisible(false);
+                        this.text1.setText('');
+                        this.text2.setText('');
+                        this.text3.setText('');
+                    }
+                    this.xp-=this.levelreq;
+                    this.level+=1;
                     this.health += 25;
-                    if (this.health > 100) {
+                    if(this.health > 100){
                         this.health = 100;
                     }
-                    this.shotAmount += 1;
-                    this.shotDamage += 1;
-                    this.shotSpeed += 100;
-                    this.shotPierce += 1;
-                    this.levelreq += 100;
-                    this.fireRate += 100;
-                    createShooterEnemy(this.myscene);
-                    gui.setText("HP: " + this.health + "  Level: " + this.level);
+                    this.levelreq = Math.floor(this.levelreq * 1.25)
+                    if(this.level == 2){
+                        for (let i = 1; i <= 2; i++) {
+                            createShooterEnemy(this.myscene)
+                        }
+                    }else if(this.level >= 2){
+                        createShooterEnemy(this.myscene);
+                        createSwarmEnemy(this.myscene);
+                    }
+                    this.rarity = 0;
+                    let rarityVal = Phaser.Math.Between(1, 10000)
+                    if(rarityVal <= 5000){
+                        this.rarity = 0;
+                    }else if(rarityVal >= 5001 && rarityVal <= 8000){
+                        this.rarity = 1;
+                    }else if(rarityVal >= 8001 && rarityVal <= 9000){
+                        this.rarity = 2;
+                    }else if(rarityVal >= 9000 && rarityVal <= 9500){
+                        this.rarity = 3;
+                    }else if(rarityVal >= 9500 && rarityVal <= 10000){
+                        this.rarity = 4;
+                    }
+
+                    this.used = [];
+
+                    // for(let i = 0; i < 3; i++){
+                        this.type = Phaser.Math.Between(0, 5);
+                        while(this.used.includes(this.type)){
+                            this.type = Phaser.Math.Between(0, 5);
+                        }
+                        this.img1 = this.myscene.add.image(100, 400+(0), this.upgradePics[this.rarity][this.type]);
+                        this.img1.setScale(.075);
+                        this.used.push(this.type);
+                        if(this.type == 0){
+                            this.text1 = this.text1.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" BULLET SPEED"));
+                        }
+                        if(this.type == 1){
+                            this.text1 = this.text1.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" DAMAGE"));
+                        }
+                        if(this.type == 2){
+                            this.text1 = this.text1.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" FIRE RATE"));
+                        }
+                        if(this.type == 3){
+                            this.text1 = this.text1.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" PIERCE"));
+                        }
+                        if(this.type == 4){
+                            this.text1 = this.text1.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" SHOT AMOUNT"));
+                        }
+                        if(this.type == 5){
+                            this.text1 = this.text1.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" LIFE STEAL"));
+                        }
+
+                        this.type = Phaser.Math.Between(0, 5);
+                        while(this.used.includes(this.type)){
+                            this.type = Phaser.Math.Between(0, 5);
+                        }
+                        this.img2 = this.myscene.add.image(100, 400+(200), this.upgradePics[this.rarity][this.type]);
+                        this.img2.setScale(.075);
+                        this.used.push(this.type);
+                        if(this.type == 0){
+                            this.text2 = this.text2.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" BULLET SPEED"));
+                        }
+                        if(this.type == 1){
+                            this.text2 = this.text2.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" DAMAGE"));
+                        }
+                        if(this.type == 2){
+                            this.text2 = this.text2.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" FIRE RATE"));
+                        }
+                        if(this.type == 3){
+                            this.text2 = this.text2.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" PIERCE"));
+                        }
+                        if(this.type == 4){
+                            this.text2 = this.text2.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" SHOT AMOUNT"));
+                        }
+                        if(this.type == 5){
+                            this.text2 = this.text2.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" LIFE STEAL"));
+                        }
+
+                        this.type = Phaser.Math.Between(0, 5);
+                        while(this.used.includes(this.type)){
+                            this.type = Phaser.Math.Between(0, 5);
+                        }
+                        this.img3 = this.myscene.add.image(100, 400+(400), this.upgradePics[this.rarity][this.type]);
+                        this.img3.setScale(.075);
+                        this.used.push(this.type);
+                        if(this.type == 0){
+                            this.text3 = this.text3.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" BULLET SPEED"));
+                        }
+                        if(this.type == 1){
+                            this.text3 = this.text3.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" DAMAGE"));
+                        }
+                        if(this.type == 2){
+                            this.text3 = this.text3.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" FIRE RATE"));
+                        }
+                        if(this.type == 3){
+                            this.text3 = this.text3.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" PIERCE"));
+                        }
+                        if(this.type == 4){
+                            this.text3 = this.text3.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" SHOT AMOUNT"));
+                        }
+                        if(this.type == 5){
+                            this.text3 = this.text3.setText(("+"+this.upgradeEffects[this.rarity][this.type]+" LIFE STEAL"));
+                        }
+                        
+                        this.options.push(this.upgradeEffects[3][this.type]);
+                    // }
+                    
+                    gui.setText(("HP: "+this.health+"  |  Level: "+this.level+"  |  XP Needed: "+(this.levelreq-this.xp)));
+
+                    console.log(this.used);
+                    }
                 }
-                gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
-            }
+
+                selectOne(){
+                    console.log("selecting")
+                    
+                    this.type = this.used[0]
+                    console.log(this.type)
+                    if(this.type == 0){
+                        this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 1){
+                        this.shotDamage += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 2){
+                        this.fireRate += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 3){
+                        this.shotPierce += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 4){
+                        this.shotAmount += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 5){
+                        this.vamp += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    this.used = [];
+
+                    this.img1.setVisible(false);
+                    this.img2.setVisible(false);
+                    this.img3.setVisible(false);
+                    this.text1.setText('');
+                    this.text2.setText('');
+                    this.text3.setText('');
+                }
+
+                selectTwo(){
+                    console.log("selecting")
+                    
+                    this.type = this.used[1]
+                    console.log(this.type)
+                    if(this.type == 0){
+                        this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 1){
+                        this.shotDamage += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 2){
+                        this.fireRate += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 3){
+                        this.shotPierce += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 4){
+                        this.shotAmount += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 5){
+                        this.vamp += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    this.used = [];
+
+                    this.img1.setVisible(false);
+                    this.img2.setVisible(false);
+                    this.img3.setVisible(false);
+                    this.text1.setText('');
+                    this.text2.setText('');
+                    this.text3.setText('');
+                }
+
+                selectThree(){
+                    console.log("selecting")
+                    
+                    this.type = this.used[2]
+                    console.log(this.type)
+                    if(this.type == 0){
+                        this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 1){
+                        this.shotDamage += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 2){
+                        this.fireRate += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 3){
+                        this.shotPierce += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 4){
+                        this.shotAmount += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    if(this.type == 5){
+                        this.vamp += this.upgradeEffects[this.rarity][this.type]
+                    }
+                    this.used = [];
+
+                    this.img1.setVisible(false);
+                    this.img2.setVisible(false);
+                    this.img3.setVisible(false);
+                    this.text1.setText('');
+                    this.text2.setText('');
+                    this.text3.setText('');
+                }
+                
+
         }
 
         // Enemey that runs around and always faces the player
@@ -289,7 +531,7 @@
             _scene;
 
             target;
-            health = 150;
+            health = 30;
             moveDelay = 1; //seconds
             attackDamage = 5;
             alive = true;
@@ -302,7 +544,7 @@
                 scene.physics.add.existing(this);
                 this._scene = scene;
                 this.setGravityY(0);
-                this.setScale(.5);
+                this.setScale(.25);
                 this.move(this);
                 this.target = player;
                 this.setMaxVelocity(150, 150);
@@ -320,23 +562,44 @@
             kill() {
                 this.destroy();
                 this.alive = false;
+                console.log("Died")
                 player.xp += 5;
                 player.checkxp();
                 guiTimer = this._scene.time.delayedCall(10000, createSwarmEnemy(this._scene));
-                player.health += player.vamp;
-                if (player.health > 100) {
+                if(player.health != 100){
+                    player.health += player.vamp;
+                }
+                if(player.health > 100){
                     player.health = 100;
+                }
+                gui.setText(("HP: "+player.health+"  |  Level: "+player.level+"  |  XP Needed: "+(player.levelreq-player.xp)));
+                if(player.health > 100){
+                    player.health = 100;
+                }
+            }
+
+            reflectPosition() {
+                if (this.x >= config.width + this.width) {
+                    this.x = 1
+                } else if (this.x <= 0 - this.width) {
+                    this.x = config.width - 1;
+                }
+
+                if (this.y >= config.height + this.height) {
+                    this.y = 1
+                } else if (this.y <= 0 - this.height) {
+                    this.y = config.height - 1;
                 }
             }
 
             //moves the enemy to a random targeted location
             move() {
                 let newspotx = Phaser.Math.Between(1, config.width);
-                let newspoty = Phaser.Math.Between(1, config.height);
+                let newspoty = Phaser. Math.Between(1, config.height);
                 // this.setVelocity(0)
 
-                this.setAccelerationX((player.x - this.x) + Phaser.Math.Between(50, 150));
-                this.setAccelerationY((player.y - this.y) + Phaser.Math.Between(50, 150));
+                this.setAccelerationX((player.x - this.x)+Phaser.Math.Between(50, 150));
+                this.setAccelerationY((player.y - this.y)+Phaser.Math.Between(50, 150));
             }
 
             preUpdate(time, deltaTime) {
@@ -351,77 +614,7 @@
                     this._timesincelastmove = 0;
                 }
 
-
-            }
-
-            takeDamage(damage) {
-                this.health -= damage;
-            }
-        }
-
-        class TankEnemy extends Phaser.Physics.Arcade.Sprite {
-            _timesincelastmove = 0;
-            _shotdelaytime = 0;
-            _scene;
-            _projectileGroup;
-
-            health = 500;
-            shotDelay = 3; //seconds
-            attackDamage = 0;
-            alive = true;
-
-            UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-
-            constructor(scene, x, y, projectileGroup, direction) {
-                super(scene, x, y, 'tankEnemy');
-                scene.add.existing(this);
-                scene.physics.add.existing(this);
-                this._scene = scene;
-                this._projectileGroup = projectileGroup
-
-                direction.normalize()
-                this.setVelocity(direction.x * 100, direction.y * 100)
-
-                this.setGravityY(0);
-                this.setScale(.1);
-            }
-
-            isAlive() {
-                if (this.health <= 0) { return false }
-                return true
-            }
-
-            kill() {
-                this.destroy();
-                this.alive = false;
-            }
-
-            shoot() {
-                let randomStart = Phaser.Math.FloatBetween(0, Math.PI / 4)
-
-                for (let i = 0; i < 8; i++) {
-                    this._projectileGroup.fire(this.x, this.y, new Phaser.Math.Vector2(1, 0).rotate(randomStart + (Math.PI / 4 * i)), {
-                        speed: 500,
-                        damage: 5,
-                        maxPierce: 0,
-                        maxDistance: 1000,
-                        width: 30,
-                        height: 10,
-                    })
-                }
-            }
-
-            preUpdate(time, deltaTime) {
-                super.preUpdate(time, deltaTime)
-                if (!this.isAlive()) { this.kill(); return; }
-
-                this.rotation = time / 1000;
-
-                this._shotdelaytime = Math.max(0, this._shotdelaytime - deltaTime)
-                if (this._shotdelaytime <= 0) {
-                    this.shoot();
-                    this._shotdelaytime = this.shotDelay * 1000
-                }
+                this.reflectPosition();
             }
 
             takeDamage(damage) {
@@ -438,7 +631,7 @@
             target;
             health = 150;
             moveDelay = 1; //seconds
-            shotDelay = 1; //seconds
+            shotDelay = 2; //seconds
             shotEnvelope = .5 // randomize to min and max
             attackDamage = 5;
             alive = true;
@@ -471,12 +664,33 @@
             kill() {
                 this.destroy();
                 this.alive = false;
+                console.log("Died")
                 player.xp += 10;
                 player.checkxp();
                 guiTimer = this._scene.time.delayedCall(10000, createShooterEnemy(this._scene));
-                player.health += player.vamp;
-                if (player.health > 100) {
+                if(player.health != 100){
+                    player.health += player.vamp;
+                }
+                if(player.health > 100){
                     player.health = 100;
+                }
+                gui.setText(("HP: "+player.health+"  |  Level: "+player.level+"  |  XP Needed: "+(player.levelreq-player.xp)));
+                if(player.health > 100){
+                    player.health = 100;
+                }
+            }
+
+            reflectPosition() {
+                if (this.x >= config.width + this.width) {
+                    this.x = 1
+                } else if (this.x <= 0 - this.width) {
+                    this.x = config.width - 1;
+                }
+
+                if (this.y >= config.height + this.height) {
+                    this.y = 1
+                } else if (this.y <= 0 - this.height) {
+                    this.y = config.height - 1;
                 }
             }
 
@@ -516,66 +730,8 @@
                     this.shoot();
                     this._shotdelaytime = (this.shotDelay + Phaser.Math.FloatBetween(-this.shotEnvelope, this.shotEnvelope)) * 1000
                 }
-            }
 
-            takeDamage(damage) {
-                this.health -= damage;
-                
-            }
-        }
-
-        class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
-            _scene;
-
-            health = 20;
-            attackDamage = 15;
-            alive = true;
-
-            useWave = true;
-            waveAmplitude = 0
-            waveTimeScale = 0
-
-            moveDirection;
-
-            UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-
-            constructor(scene, x, y, direction) {
-                super(scene, x, y, 'runnerEnemy');
-                scene.add.existing(this);
-                scene.physics.add.existing(this);
-                this._scene = scene;
-                this.setGravityY(0);
-                this.setDisplaySize(45, 15)
-                this.target = player;
-
-                this.moveDirection = direction.normalize().scale(Phaser.Math.Between(400, 600))
-                this.waveAmplitude = Phaser.Math.Between(0, 300)
-                this.waveTimeScale = Phaser.Math.Between(1, 5)
-            }
-
-            isAlive() {
-                if (this.health <= 0) { return false }
-                return true
-            }
-
-            kill() {
-                this.destroy();
-                this.alive = false;
-            }
-
-            preUpdate(time, deltaTime) {
-                super.preUpdate(time, deltaTime)
-                if (!this.isAlive()) { this.kill(); return; }
-
-                this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
-
-
-                if (this.useWave) {
-                    let moveVector = this.moveDirection.clone()
-                    let rightVector = this.moveDirection.clone().normalize().rotate(Math.PI / 2).scale(this.waveAmplitude * Math.cos(this.waveTimeScale * time / 1000))
-
-                    this.body.velocity = moveVector.add(rightVector)
-                }
+                this.reflectPosition();
             }
 
             takeDamage(damage) {
@@ -597,59 +753,95 @@
         var guiTimer;
         var gui;
 
+        var one;
+        var two;
+        var three;
+
         var enemies = [];
 
         function preload() {
             this.load.image('stars', 'assets/images/newstarbackground.png');
             this.load.image('player', 'assets/images/maincharacter.png');
-
-            this.load.image('swarmEnemy', 'assets/images/Enemy_1.png');
+            this.load.image('SwarmEnemy', 'assets/images/Swarm.png');
             this.load.image('shooterEnemy', 'assets/images/Imp.png')
-            this.load.image('runnerEnemy', 'assets/images/Rocket.png')
-            this.load.image('tankEnemy', 'assets/images/Tank.png')
-
             this.load.image('playerLaser', 'assets/images/PlayerLaser.png')
             this.load.image('enemyLaser', 'assets/images/EnemyLaser.png')
+
+
             this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3')
-        }
-
-        function getRandomPointOnEdge() {
-            let randomSide;
-            let xOrY = Phaser.Math.Between(1, 2)
-
-            if (Phaser.Math.Between(1, 2) == 1) { randomSide = 1; } else { randomSide = -1; }
-
-            if (xOrY == 1) {
-                return new Phaser.Math.Vector2(Phaser.Math.Between(0, config.width) * randomSide, -100);
-            } else if (xOrY == 2) {
-                return new Phaser.Math.Vector2(100 * randomSide, Phaser.Math.Between(0, config.width) * randomSide);
-            }
-        }
-
-        function createRunnerEnemy(tempScene, num) {
-            if (num <= 0) { return }
-
-            let spawnPoint = getRandomPointOnEdge()
-            let direction = Phaser.Math.RandomXY(new Phaser.Math.Vector2())
             
-            let myRunner = new RunnerEnemy(tempScene, spawnPoint.x, spawnPoint.y, direction)
-            myRunner.target = player
-            enemies.push(myRunner)
+            //ALL THE UPGRADES!!!!!
+            this.load.image('bulletSpeedCommon', 'assets/images/bulletspeed_common.png')
+            this.load.image('bulletSpeedRare', 'assets/images/bulletspeed_rare.png')
+            this.load.image('bulletSpeedEpic', 'assets/images/bulletspeed_epic.png')
+            this.load.image('bulletSpeedLegendary', 'assets/images/bulletspeed_legendary.png')
+            this.load.image('bulletSpeedMythic', 'assets/images/bulletspeed_mythic.png')
 
-            tempScene.time.delayedCall(10, createRunnerEnemy, [tempScene, num - 1], this)
+            this.load.image('damageCommon', 'assets/images/Damage_Common.png')
+            this.load.image('damageRare', 'assets/images/Damage_Rare.png')
+            this.load.image('damageEpic', 'assets/images/Damage_Epic.png')
+            this.load.image('damageLegendary', 'assets/images/Damage_Legendary.png')
+            this.load.image('damageMythic', 'assets/images/Damage_Mythic.png')
+
+            this.load.image('fireRateCommon', 'assets/images/fire_rate_common.png')
+            this.load.image('fireRateRare', 'assets/images/fire_rate_rare.png')
+            this.load.image('fireRateEpic', 'assets/images/fire_rate_epic.png')
+            this.load.image('fireRateLegendary', 'assets/images/fire_rate_legendary.png')
+            this.load.image('fireRateMythic', 'assets/images/fire_rate_mythic.png')
+
+            this.load.image('maxPierceCommon', 'assets/images/MaxPierceCommon.png')
+            this.load.image('maxPierceRare', 'assets/images/MaxPierceRare.png')
+            this.load.image('maxPierceEpic', 'assets/images/MaxPierceEpic.png')
+            this.load.image('maxPierceLegendary', 'assets/images/MaxPierceLegendary.png')
+            this.load.image('maxPierceMythic', 'assets/images/MaxPierceMythic.png')
+
+            this.load.image('shotSpreadCommon', 'assets/images/ShotSpreadCommon.png')
+            this.load.image('shotSpreadRare', 'assets/images/ShotSpreadRare.png')
+            this.load.image('shotSpreadEpic', 'assets/images/ShotSpreadEpic.png')
+            this.load.image('shotSpreadLegendary', 'assets/images/ShotSpreadLegendary.png')
+            this.load.image('shotSpreadMythic', 'assets/images/ShotSpreadMythic.png')
+
+            this.load.image('vampCommon', 'assets/images/Vamp_Common_new.png')
+            this.load.image('vampRare', 'assets/images/Vamp_Rare.png')
+            this.load.image('vampEpic', 'assets/images/Vamp_Epic_new.png')
+            this.load.image('vampLegendary', 'assets/images/Vamp_Legendary.png')
+            this.load.image('vampMythic', 'assets/images/Vamp_Mythic.png')
         }
 
-        function createShooterEnemy(tempScene) {
+        // initializes a single Runner Enemy
+        function createSwarmEnemy(tempScene) {
+            let spawnX = Phaser.Math.Between(1, config.width)
+            let spawnY= Phaser.Math.Between(1, config.height)
+            while(spawnX > 200 && spawnX < 1700){
+                spawnX = Phaser.Math.Between(1, config.width)
+            }
+            let myEnemy = new SwarmEnemy(tempScene, spawnX, spawnY);
+            myEnemy.target = player;
+            enemies.push(myEnemy);
+        }
 
-            for (let i = 1; i <= 4; i++) {
-                let spawnPoint = getRandomPointOnEdge()
-                let myShooter = new TankEnemy(tempScene, spawnPoint.x, spawnPoint.y, enemyProjectileGroup, Phaser.Math.RandomXY(new Phaser.Math.Vector2()))
+        function createShooterEnemy(tempScene){
+            let spawnpoint = Phaser.Math.Between(1, 4);
+            if(spawnpoint == 1){
+                let myShooter = new ShooterEnemy(tempScene, 100, 100, enemyProjectileGroup)
                 myShooter.target = player
                 enemies.push(myShooter)
             }
-
-            
-            createRunnerEnemy(tempScene, 20)
+            if(spawnpoint == 2){
+                let myShooter = new ShooterEnemy(tempScene, 1800, 100, enemyProjectileGroup)
+                myShooter.target = player
+                enemies.push(myShooter)
+            }
+            if(spawnpoint == 3){
+                let myShooter = new ShooterEnemy(tempScene, 1800, 1100, enemyProjectileGroup)
+                myShooter.target = player
+                enemies.push(myShooter)
+            }
+            if(spawnpoint == 4){
+                let myShooter = new ShooterEnemy(tempScene, 100, 1100, enemyProjectileGroup)
+                myShooter.target = player
+                enemies.push(myShooter)
+            }
         }
 
         //moves all sprites in enemies[]
@@ -659,63 +851,46 @@
             enemyProjectileGroup = new ProjectileGroup(this, 'enemyLaser');
 
             player = new Player(this, 500, 500, playerProjectileGroup);
-            createShooterEnemy(this)
+
+            for (let i = 1; i <= 5; i++) {
+                createSwarmEnemy(this)
+            }
+
+            // for (let i = 1; i <= 4; i++) {
+            //     createShooterEnemy(this)
+            // }
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
-            keys = this.input.keyboard.addKeys('W, A, S, D');
+            keys = this.input.keyboard.addKeys('W, A, S, D, 1, 2, 3');
 
-            gui = this.add.text(450, 1100, ("HP: " + player.health + "  |  Level: " + player.level + "  |  XP Needed: " + (player.levelreq - player.xp)), { fontSize: '50px', fill: '#FFFFFF', font: '50px courier' });
-
-        }
-
-
-        function reflectPosition(target) {
-            let targetHeight = target.height * target.scaleY
-            let targetWidth = target.width * target.scaleX
-
-            console.log(targetHeight, targetWidth)
-
-            if (target.x >= game.scale.width + targetWidth) {
-                target.x = 1
-            } else if (target.x <= 0 - targetWidth) {
-                target.x = game.scale.width - 1;
-            }
-
-            if (target.y >= game.scale.height + targetHeight) {
-                target.y = 1
-            } else if (target.y <= 0 - targetHeight) {
-                target.y = game.scale.height - 1;
-            }
+            gui = this.add.text(450, 1100, ("HP: "+player.health+"  |  Level: "+player.level+"  |  XP Needed: "+(player.levelreq-player.xp)), {fontSize: '50px', fill: '#FFFFFF', font: '50px courier'});
+            
+            one = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+            two = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+            three = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+            
         }
 
         function update(time, delta) {
             let deltaSeconds = delta / 1000
             let timeSeconds = time / 1000
 
-            for (let i = 0; i < enemies.length; i++) {
-                reflectPosition(enemies[i])
-            }
-            reflectPosition(player)
-
             this.physics.overlap(player, enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
             this.physics.overlap(enemies, playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
             this.physics.overlap(player, enemyProjectileGroup, function (player, enemyProjectile) { player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
+            
+            if(Phaser.Input.Keyboard.JustDown(one)) {
+                player.selectOne();
+            }
+            if(Phaser.Input.Keyboard.JustDown(two)) {
+                player.selectTwo();
+            }
+            if(Phaser.Input.Keyboard.JustDown(three)) {
+                player.selectThree();
+            }
         }
     </script>
-</head>
-
-<style>
-    body {
-        margin: 0;
-        overflow: hidden;
-        background-color: black;
-    }
-</style>
-
-<body>
-    <div id="mygame"></div>
-
 
 </body>
 
