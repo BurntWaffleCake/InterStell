@@ -192,10 +192,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         let movementVector = new Phaser.Math.Vector2(0, 0)
 
-        if (keys.W.isDown) { movementVector.add(new Phaser.Math.Vector2(0, -1)) }
-        if (keys.A.isDown) { movementVector.add(new Phaser.Math.Vector2(-1, 0)) }
-        if (keys.S.isDown) { movementVector.add(new Phaser.Math.Vector2(0, 1)) }
-        if (keys.D.isDown) { movementVector.add(new Phaser.Math.Vector2(1, 0)) }
+        if (this.myscene.keys.W.isDown) { movementVector.add(new Phaser.Math.Vector2(0, -1)) }
+        if (this.myscene.keys.A.isDown) { movementVector.add(new Phaser.Math.Vector2(-1, 0)) }
+        if (this.myscene.keys.S.isDown) { movementVector.add(new Phaser.Math.Vector2(0, 1)) }
+        if (this.myscene.keys.D.isDown) { movementVector.add(new Phaser.Math.Vector2(1, 0)) }
 
         movementVector.normalize()
 
@@ -245,17 +245,17 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.shotSpeed += 100;
             this.shotPierce += 1;
             this.levelreq = Math.floor(this.levelreq * 1.25)
-            this.fireRate+=100;
+            this.fireRate += 100;
             createShooterEnemy(this.myscene);
             createSwarmEnemy(this.myscene);
-            
+
             console.log("level up");
-            gui.setText("HP: "+this.health+"  Level: "+this.level);
-            if(this.level == 2){
+            gui.setText("HP: " + this.health + "  Level: " + this.level);
+            if (this.level == 2) {
                 for (let i = 1; i <= 4; i++) {
                     createShooterEnemy(this.myscene)
                 }
-            }else if(this.level >= 2){
+            } else if (this.level >= 2) {
                 createShooterEnemy(this.myscene);
             }
         }
@@ -283,7 +283,6 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
         this.setGravityY(0);
         this.setScale(.5);
         this.move(this);
-        this.target = player;
         this.setMaxVelocity(150, 150);
     }
 
@@ -299,12 +298,12 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
     kill() {
         this.destroy();
         this.alive = false;
-        player.xp += 5;
-        player.checkxp();
+        this._scene.player.xp += 5;
+        this._scene.player.checkxp();
         guiTimer = this._scene.time.delayedCall(10000, createSwarmEnemy(this._scene));
-        player.health += player.vamp;
-        if (player.health > 100) {
-            player.health = 100;
+        this._scene.player.health += this._scene.player.vamp;
+        if (this._scene.player.health > 100) {
+            this._scene.player.health = 100;
         }
     }
 
@@ -314,8 +313,8 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
         let newspoty = Phaser.Math.Between(1, config.height);
         // this.setVelocity(0)
 
-        this.setAccelerationX((player.x - this.x) + Phaser.Math.Between(50, 150));
-        this.setAccelerationY((player.y - this.y) + Phaser.Math.Between(50, 150));
+        this.setAccelerationX((this._scene.player.x - this.x) + Phaser.Math.Between(50, 150));
+        this.setAccelerationY((this._scene.player.y - this.y) + Phaser.Math.Between(50, 150));
     }
 
     preUpdate(time, deltaTime) {
@@ -434,7 +433,6 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
         this.setGravityY(0);
         this.setScale(.25);
         this.move(this);
-        this.target = player;
         this.setMaxVelocity(150, 150);
     }
 
@@ -450,12 +448,12 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     kill() {
         this.destroy();
         this.alive = false;
-        player.xp += 10;
-        player.checkxp();
+        this._scene.player.xp += 10;
+        this._scene.player.checkxp();
         guiTimer = this._scene.time.delayedCall(10000, createShooterEnemy(this._scene));
-        player.health += player.vamp;
-        if (player.health > 100) {
-            player.health = 100;
+        this._scene.player.health += player.vamp;
+        if (this._scene.player.health > 100) {
+            this._scene.player.health = 100;
         }
     }
 
@@ -525,7 +523,6 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
         this._scene = scene;
         this.setGravityY(0);
         this.setDisplaySize(45, 15)
-        this.target = player;
 
         this.moveDirection = direction.normalize().scale(Phaser.Math.Between(400, 600))
         this.waveAmplitude = Phaser.Math.Between(0, 300)
@@ -563,8 +560,6 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
 }
 
 class GameScreen extends Phaser.Scene {
-  
-
     player;
 
     playerProjectileGroup;
@@ -579,6 +574,10 @@ class GameScreen extends Phaser.Scene {
     gui;
 
     enemies = [];
+
+    constructor() {
+        super('gamescreen')
+    }
 
     preload() {
         this.load.image('stars', 'assets/images/newstarbackground.png');
@@ -608,17 +607,16 @@ class GameScreen extends Phaser.Scene {
     }
 
     createRunnerEnemy(tempScene, num) {
-        console.log(num)
         if (num <= 0) { return }
 
-        let spawnPoint = getRandomPointOnEdge()
+        let spawnPoint = this.getRandomPointOnEdge()
         let direction = Phaser.Math.RandomXY(new Phaser.Math.Vector2())
-        
-        let myRunner = new RunnerEnemy(tempScene, spawnPoint.x, spawnPoint.y, direction)
-        myRunner.target = player
-        enemies.push(myRunner)
 
-        tempScene.time.delayedCall(10, createRunnerEnemy, [tempScene, num - 1], this)
+        let myRunner = new RunnerEnemy(tempScene, spawnPoint.x, spawnPoint.y, direction)
+        myRunner.target = this.player
+        this.enemies.push(myRunner)
+
+        tempScene.time.delayedCall(10, this.createRunnerEnemy, [tempScene, num - 1], this)
     }
 
     createShooterEnemy(tempScene) {
@@ -627,26 +625,27 @@ class GameScreen extends Phaser.Scene {
             let spawnPoint = getRandomPointOnEdge()
             let myShooter = new TankEnemy(tempScene, spawnPoint.x, spawnPoint.y, enemyProjectileGroup, Phaser.Math.RandomXY(new Phaser.Math.Vector2()))
             myShooter.target = player
-            enemies.push(myShooter)
+            this.enemies.push(myShooter)
         }
-        
-       // createRunnerEnemy(tempScene, 20)
+
+        // createRunnerEnemy(tempScene, 20)
     }
 
-    constructor() {
-        super('gamescreen')
+    toMainScreen() {
+        this.pause();
+        this.start("menuscreen");
     }
+
 
     create() {
         let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
         this.playerProjectileGroup = new ProjectileGroup(this, 'playerLaser');
         this.enemyProjectileGroup = new ProjectileGroup(this, 'enemyLaser');
 
-        console.log("thats baller", this.playerProjectileGroup)
         this.player = new Player(this, 500, 500, this.playerProjectileGroup);
 
-        createRunnerEnemy(this, 10)
-    
+        this.createRunnerEnemy(this, 10)
+
         //createShooterEnemy(this)
 
         // for (let i = 1; i <= 4; i++) {
@@ -658,6 +657,7 @@ class GameScreen extends Phaser.Scene {
         this.keys = this.input.keyboard.addKeys('W, A, S, D');
 
         this.gui = this.add.text(450, 1100, ("HP: " + this.player.health + "  |  Level: " + this.player.level + "  |  XP Needed: " + (this.player.levelreq - this.player.xp)), { fontSize: '50px', fill: '#FFFFFF', font: '50px courier' });
+        this.time.delayedCall(5000, function() { console.log("baller"); this.scene.toMainScreen()});
     }
 
     reflectPosition(target) {
@@ -681,14 +681,14 @@ class GameScreen extends Phaser.Scene {
         let deltaSeconds = delta / 1000
         let timeSeconds = time / 1000
 
-        for (let i = 0; i < enemies.length; i++) {
-            reflectPosition(enemies[i])
+        for (let i = 0; i < this.enemies.length; i++) {
+            this.reflectPosition(this.enemies[i])
         }
-        reflectPosition(player)
+        this.reflectPosition(this.player)
 
-        this.physics.overlap(player, enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
-        this.physics.overlap(enemies, playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
-        this.physics.overlap(player, enemyProjectileGroup, function (player, enemyProjectile) { player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
+        this.physics.overlap(this.player, this.enemies, function (player, targetEnemy) { this.player.takeDamage(targetEnemy.attackDamage); });
+        this.physics.overlap(this.enemies, this.playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
+        this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { this.player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(this.player); })
     }
 }
 
@@ -696,18 +696,31 @@ class MenuScreen extends Phaser.Scene {
     constructor() {
         super('menuscreen');
     }
-    
+
+    startGame() {
+        this.scene.pause();
+        this.scene.start('gamescreen');
+    }
+
     preload() {
         this.canvas = this.sys.game.canvas;
         console.log(this.canvas)
     }
 
     create() {
-        this.canvas = this.sys.game.canvas;
-        console.log(this.canvas) 
+        const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
+        const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
 
-        this.scene.pause();
-        this.scene.start('gamescreen');
+        console
+
+        this.titleText = this.add.text(screenCenterX, screenCenterY, "Intersell", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
+        this.playText = this.add.text(screenCenterX, screenCenterY + 75, "Play", { fontSize: '75px', fill: '#FFFFFF', font: '50px courier' }).setOrigin(.5).setInteractive();
+        this.playText.on('pointerdown', function() { console.log("textClicked"); this.scene.startGame(); })
+        this.playText.on('pointerover', function() { console.log("textHovered"); this.setColor('#808080') })
+        this.playText.on('pointerout', function() { console.log("textUnhovered"); this.setColor('#FFFFFF') })
+
+        //this.scene.pause();
+        //this.scene.start('gamescreen');
     }
 
 }
