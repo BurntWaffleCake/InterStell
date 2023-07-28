@@ -273,26 +273,10 @@
                     this.shotDamage += 1;
                     this.shotSpeed += 100;
                     this.shotPierce += 1;
-<<<<<<< HEAD
                     this.levelreq += 100;
                     this.fireRate += 100;
                     createShooterEnemy(this.myscene);
                     gui.setText("HP: " + this.health + "  Level: " + this.level);
-=======
-                    this.levelreq = Math.floor(this.levelreq * 1.25)
-                    this.fireRate+=100;
-                    createShooterEnemy(this.myscene);
-                    createSwarmEnemy(this.myscene);
-                    console.log("level up");
-                    gui.setText("HP: "+this.health+"  Level: "+this.level);
-                    if(this.level == 2){
-                        for (let i = 1; i <= 4; i++) {
-                            createShooterEnemy(this.myscene)
-                        }
-                    }else if(this.level >= 2){
-                        createShooterEnemy(this.myscene);
-                    }
->>>>>>> f1049b6a19fa73c2cad856fd4c32b910a9fab3fd
                 }
                 gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
             }
@@ -454,7 +438,7 @@
             target;
             health = 150;
             moveDelay = 1; //seconds
-            shotDelay = 2; //seconds
+            shotDelay = 1; //seconds
             shotEnvelope = .5 // randomize to min and max
             attackDamage = 5;
             alive = true;
@@ -536,7 +520,7 @@
 
             takeDamage(damage) {
                 this.health -= damage;
-                this._scene
+                
             }
         }
 
@@ -675,18 +659,7 @@
             enemyProjectileGroup = new ProjectileGroup(this, 'enemyLaser');
 
             player = new Player(this, 500, 500, playerProjectileGroup);
-<<<<<<< HEAD
             createShooterEnemy(this)
-=======
-
-            for (let i = 1; i <= 5; i++) {
-                createSwarmEnemy(this)
-            }
-
-            // for (let i = 1; i <= 4; i++) {
-            //     createShooterEnemy(this)
-            // }
->>>>>>> f1049b6a19fa73c2cad856fd4c32b910a9fab3fd
 
             //Set up user input
             cursors = this.input.keyboard.createCursorKeys();
