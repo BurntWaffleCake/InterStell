@@ -136,7 +136,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     fireRate = 100 // rounds per minute
 
     shotSpeed = 1000
-    shotDamage = 10000;
+    shotDamage = 5;
     shotPierce = 0;
     shotDistance = 10000;
 
@@ -340,6 +340,16 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage) {
         this.health -= damage;
+
+        if (this._currentFlashTween && this._currentFlashTween.progress < 1) { return }
+        this._currentFlashTween = this._scene.tweens.add({
+            targets: this,
+            alpha: 0,
+            ease: 'Cubic.easeOut',
+            duration: 50,
+            repeat: 1,
+            yoyo: true
+        })
     }
 }
 
@@ -602,6 +612,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage) {
         this.health -= damage;
+
         if (this._currentFlashTween && this._currentFlashTween.progress < 1) { return }
         this._currentFlashTween = this._scene.tweens.add({
             targets: this,
@@ -735,9 +746,8 @@ class GameScreen extends Phaser.Scene {
     }
 
     createSwarmEnemy() {
-        let direction = Phaser.Math.RandomXY(new Phaser.Math.Vector2())
         let spawnPoint = this.getRandomPointOnEdge()
-        let myShooter = new Asteroid(this, spawnPoint.x, spawnPoint.y, direction)
+        let myShooter = new SwarmEnemy(this, spawnPoint.x, spawnPoint.y)
         myShooter.target = this.player;
         this.enemies.push(myShooter)
     }
@@ -771,9 +781,10 @@ class GameScreen extends Phaser.Scene {
 
         this.player = new Player(this, 500, 500, this.playerProjectileGroup);
 
-        for (let i=0; i < 5; i++)
-        this.createSwarmEnemy();
-
+        for (let i=0; i < 5; i++) {
+            this.createSwarmEnemy();
+        }
+     
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys('W, A, S, D');
 
@@ -832,7 +843,7 @@ class MenuScreen extends Phaser.Scene {
         const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
 
-        this.titleText = this.add.text(screenCenterX, screenCenterY, "Interstell", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
+        this.titleText = this.add.text(screenCenterX, screenCenterY, "Interstell v1.0.0", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
         this.playText = this.add.text(screenCenterX, screenCenterY + 75, "Play", { fontSize: '75px', fill: '#FFFFFF', font: '50px courier' }).setOrigin(.5).setInteractive();
         this.playText.on('pointerdown', function () { console.log("textClicked"); this.scene.startGame(); })
         this.playText.on('pointerover', function () { console.log("textHovered"); this.setColor('#808080') })
