@@ -22,8 +22,6 @@ class ProjectileGroup extends Phaser.Physics.Arcade.Group {
 }
 
 class Projectile extends Phaser.Physics.Arcade.Sprite {
-    projectileType;
-
     _distanceTraveled = 0;
     _previousPosition;
     _secondsPassed = 0;
@@ -31,6 +29,8 @@ class Projectile extends Phaser.Physics.Arcade.Sprite {
     _piercedObjects = [];
 
     UUID;
+
+    active = false;
 
     maxDistance = 0;
     maxPierce = 0;
@@ -93,12 +93,15 @@ class Projectile extends Phaser.Physics.Arcade.Sprite {
         this.maxPierce = config.maxPierce;
         this.damage = config.damage;
 
+        this.active = true;
+
         direction.normalize();
         this.setVelocity((config.speed) * direction.x, (config.speed) * direction.y) // default speed is 100
     }
 
     onHit(hitObject) {
-        if (this._piercedObjects.find(element => element == hitObject.UUID)) { console.log("alreadyhit"); return }
+        if (!this.active) { return }
+        if (this._piercedObjects.find(element => element == hitObject.UUID)) { console.log("balls"); return }
         this._pierceCount += 1;
         this._piercedObjects.push(hitObject.UUID);
     }
@@ -128,12 +131,12 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     level = 1;
     levelreq = 50
 
-    shotAmount = 100
+    shotAmount = 1
     shotSpread = 5
     fireRate = 100 // rounds per minute
 
     shotSpeed = 1000
-    shotDamage = 10;
+    shotDamage = 10000;
     shotPierce = 0;
     shotDistance = 10000;
 
@@ -141,7 +144,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
     UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
-    constructor(scene, x, y, projectileGroup) {
+    constructor(scene, x, y) {
         super(scene, x, y, 'player');
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -153,7 +156,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.setBounce(.5, .5)
         this.setMaxVelocity(this.maxMovementSpeed, this.maxMovementSpeed)
         this.myscene = scene;
-        this.myprojectilegroup = projectileGroup
+        this.myprojectilegroup = scene.playerProjectileGroup
     }
 
     shoot() {
@@ -206,6 +209,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         super.preUpdate(time, deltaTime)
 
         if (!this.isAlive()) {
+            this.myscene.playerDied();
             this.destroy()
             return
         }
@@ -229,7 +233,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         }
         this._iframeremainingtime = this.iframeTime * 1000;
         this.health -= damage;
-        gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
+        this.myscene.gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
     }
 
     checkxp() {
@@ -240,26 +244,28 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             if (this.health > 100) {
                 this.health = 100;
             }
-            this.shotAmount += 1;
+            if (this.level % 3 ==0) {
+                this.shotAmount += 1;
+            }
             this.shotDamage += 1;
             this.shotSpeed += 100;
             this.shotPierce += 1;
             this.levelreq = Math.floor(this.levelreq * 1.25)
-            this.fireRate += 100;
-            createShooterEnemy(this.myscene);
-            createSwarmEnemy(this.myscene);
+            this.fireRate += 10;
+            this.myscene.createShooterEnemy(this.myscene);
+            this.myscene.createSwarmEnemy(this.myscene);
 
             console.log("level up");
-            gui.setText("HP: " + this.health + "  Level: " + this.level);
+            this.myscene.gui.setText("HP: " + this.health + "  Level: " + this.level);
             if (this.level == 2) {
                 for (let i = 1; i <= 4; i++) {
-                    createShooterEnemy(this.myscene)
+                    this.myscene.createShooterEnemy(this.myscene)
                 }
             } else if (this.level >= 2) {
-                createShooterEnemy(this.myscene);
+                this.myscene.createShooterEnemy(this.myscene);
             }
         }
-        gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
+        this.myscene.gui.setText(("HP: " + this.health + "  |  Level: " + this.level + "  |  XP Needed: " + (this.levelreq - this.xp)));
     }
 }
 
@@ -268,15 +274,15 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
     _scene;
 
     target;
-    health = 150;
+    health = 50;
     moveDelay = 1; //seconds
     attackDamage = 5;
     alive = true;
 
     UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
-    constructor(scene, x, y, projectileGroup) {
-        super(scene, x, y, 'SwarmEnemy');
+    constructor(scene, x, y) {
+        super(scene, x, y, 'swarmEnemy');
         scene.add.existing(this);
         scene.physics.add.existing(this);
         this._scene = scene;
@@ -300,7 +306,7 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
         this.alive = false;
         this._scene.player.xp += 5;
         this._scene.player.checkxp();
-        guiTimer = this._scene.time.delayedCall(10000, createSwarmEnemy(this._scene));
+        this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createSwarmEnemy(this._scene));
         this._scene.player.health += this._scene.player.vamp;
         if (this._scene.player.health > 100) {
             this._scene.player.health = 100;
@@ -345,17 +351,17 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
 
     health = 500;
     shotDelay = 3; //seconds
-    attackDamage = 0;
+    attackDamage = 20;
     alive = true;
 
     UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
-    constructor(scene, x, y, projectileGroup, direction) {
+    constructor(scene, x, y, direction) {
         super(scene, x, y, 'tankEnemy');
         scene.add.existing(this);
         scene.physics.add.existing(this);
         this._scene = scene;
-        this._projectileGroup = projectileGroup
+        this._projectileGroup = scene.enemyProjectileGroup
 
         direction.normalize()
         this.setVelocity(direction.x * 100, direction.y * 100)
@@ -407,14 +413,113 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
+class AsteroidChunk extends Phaser.Physics.Arcade.Sprite {
+    _scene;
+
+    health = 500;
+    attackDamage = 5;
+    alive = true;
+
+    UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+
+    constructor(scene, x, y, direction, scale) {
+        super(scene, x, y, 'asteroidChunk');
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
+        this._scene = scene;
+
+        this.setGravityY(0);
+        this.setScale(Phaser.Math.FloatBetween(.05, scale / 2));
+
+        direction.normalize()
+        this.setVelocity(direction.x * 200 * (.5 - this.scale), direction.y * 200 * (.5 - this.scale))
+
+        this.health *= this.scale
+    }
+
+    isAlive() {
+        if (this.health <= 0) { return false }
+        return true
+    }
+
+    kill() {
+        this.destroy();
+        this.alive = false;
+    }
+
+    preUpdate(time, deltaTime) {
+        super.preUpdate(time, deltaTime)
+        if (!this.isAlive()) { this.kill(); return; }
+
+        this.rotation = time / 1000 * (1 + this.scale);
+    }
+
+    takeDamage(damage) {
+        this.health -= damage;
+    }
+}
+
+class Asteroid extends Phaser.Physics.Arcade.Sprite {
+    _scene;
+
+    health = 5000;
+    attackDamage = 10;
+    alive = true;
+
+    UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+
+    constructor(scene, x, y, direction) {
+        super(scene, x, y, 'asteroid');
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
+        this._scene = scene;
+
+        this.setGravityY(0);
+        this.setScale(Phaser.Math.FloatBetween(.05, .3));
+
+        direction.normalize()
+        this.setVelocity(direction.x * 100 * (.5 - this.scale), direction.y * 100 * (.5 - this.scale))
+
+        this.health *= this.scale
+    }
+
+    isAlive() {
+        if (this.health <= 0) { return false }
+        return true
+    }
+
+    kill() {
+        for (let i = 0; i < 4; i++) {
+            let newAsteroidChunk = new AsteroidChunk(this._scene, this.x, this.y, this.body.velocity.clone().rotate(Math.PI / 2 * i), this.scale)
+            this._scene.enemies.push(newAsteroidChunk)
+        }
+        this.destroy();
+        this.alive = false;
+    }
+
+    preUpdate(time, deltaTime) {
+        super.preUpdate(time, deltaTime)
+        if (!this.isAlive()) { this.kill(); return; }
+
+        this.rotation = time / 1000 * (1 + this.scale);
+    }
+
+    takeDamage(damage) {
+        this.health -= damage;
+    }
+}
+
 class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     _timesincelastmove = 0;
     _shotdelaytime = 0;
     _scene;
     _projectileGroup;
+    _currentFlashTween;
+
+    flashGraphic;
 
     target;
-    health = 150;
+    health = 100;
     moveDelay = 1; //seconds
     shotDelay = 2; //seconds
     shotEnvelope = .5 // randomize to min and max
@@ -423,12 +528,12 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
 
     UUID = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
-    constructor(scene, x, y, projectileGroup) {
+    constructor(scene, x, y) {
         super(scene, x, y, 'shooterEnemy');
         scene.add.existing(this);
         scene.physics.add.existing(this);
         this._scene = scene;
-        this._projectileGroup = projectileGroup
+        this._projectileGroup = scene.enemyProjectileGroup
 
         this.setGravityY(0);
         this.setScale(.25);
@@ -450,8 +555,8 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
         this.alive = false;
         this._scene.player.xp += 10;
         this._scene.player.checkxp();
-        guiTimer = this._scene.time.delayedCall(10000, createShooterEnemy(this._scene));
-        this._scene.player.health += player.vamp;
+        this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createShooterEnemy(this._scene));
+        this._scene.player.health += this._scene.player.vamp;
         if (this._scene.player.health > 100) {
             this._scene.player.health = 100;
         }
@@ -468,7 +573,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     shoot() {
         this._projectileGroup.fire(this.x, this.y, new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation)), {
             speed: 500,
-            damage: 10,
+            damage: 5,
             maxPierce: 0,
             maxDistance: 1000,
             width: 10,
@@ -497,7 +602,15 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage) {
         this.health -= damage;
-        this._scene
+        if (this._currentFlashTween && this._currentFlashTween.progress < 1) { return }
+        this._currentFlashTween = this._scene.tweens.add({
+            targets: this,
+            alpha: 0,
+            ease: 'Cubic.easeOut',
+            duration: 50,
+            repeat: 1,
+            yoyo: true
+        })
     }
 }
 
@@ -561,6 +674,7 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
 
 class GameScreen extends Phaser.Scene {
     player;
+    playerDead = false;
 
     playerProjectileGroup;
     enemyProjectileGroup;
@@ -581,16 +695,20 @@ class GameScreen extends Phaser.Scene {
 
     preload() {
         this.load.image('stars', 'assets/images/newstarbackground.png');
-        this.load.image('player', 'assets/images/maincharacter.png');
+            this.load.image('player', 'assets/images/maincharacter.png');
 
-        this.load.image('swarmEnemy', 'assets/images/Enemy_1.png');
-        this.load.image('shooterEnemy', 'assets/images/Imp.png')
-        this.load.image('runnerEnemy', 'assets/images/Rocket.png')
-        this.load.image('tankEnemy', 'assets/images/Tank.png')
+            this.load.image('swarmEnemy', 'assets/images/Swarm.png');
+            this.load.image('shooterEnemy', 'assets/images/Imp.png')
+            this.load.image('runnerEnemy', 'assets/images/Rocket.png')
+            this.load.image('tankEnemy', 'assets/images/Tank.png')
 
-        this.load.image('playerLaser', 'assets/images/PlayerLaser.png')
-        this.load.image('enemyLaser', 'assets/images/EnemyLaser.png')
-        this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3')
+            this.load.image('asteroid', 'assets/images/Asteroid.png')
+            this.load.image('asteroidChunk', 'assets/images/AsteroidChunk.png')
+
+            this.load.image('playerLaser', 'assets/images/PlayerLaser.png')
+            this.load.image('enemyLaser', 'assets/images/EnemyLaser.png')
+
+            this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3')
     }
 
     getRandomPointOnEdge() {
@@ -606,36 +724,45 @@ class GameScreen extends Phaser.Scene {
         }
     }
 
-    createRunnerEnemy(tempScene, num) {
-        if (num <= 0) { return }
-
-        let spawnPoint = this.getRandomPointOnEdge()
-        let direction = Phaser.Math.RandomXY(new Phaser.Math.Vector2())
-
-        let myRunner = new RunnerEnemy(tempScene, spawnPoint.x, spawnPoint.y, direction)
-        myRunner.target = this.player
-        this.enemies.push(myRunner)
-
-        tempScene.time.delayedCall(10, this.createRunnerEnemy, [tempScene, num - 1], this)
-    }
-
-    createShooterEnemy(tempScene) {
-
+    createRunnerEnemy() {
         for (let i = 1; i <= 4; i++) {
-            let spawnPoint = getRandomPointOnEdge()
-            let myShooter = new TankEnemy(tempScene, spawnPoint.x, spawnPoint.y, enemyProjectileGroup, Phaser.Math.RandomXY(new Phaser.Math.Vector2()))
-            myShooter.target = player
-            this.enemies.push(myShooter)
+            let spawnPoint = this.getRandomPointOnEdge()
+
+            let myRunner = new RunnerEnemy(this, spawnPoint.x, spawnPoint.y)
+            myRunner.target = this.player
+            this.enemies.push(myRunner)
         }
-
-        // createRunnerEnemy(tempScene, 20)
     }
 
-    toMainScreen() {
-        this.pause();
-        this.start("menuscreen");
+    createSwarmEnemy() {
+        let direction = Phaser.Math.RandomXY(new Phaser.Math.Vector2())
+        let spawnPoint = this.getRandomPointOnEdge()
+        let myShooter = new Asteroid(this, spawnPoint.x, spawnPoint.y, direction)
+        myShooter.target = this.player;
+        this.enemies.push(myShooter)
     }
 
+    createShooterEnemy() {
+        let spawnPoint = this.getRandomPointOnEdge()
+        let myShooter = new ShooterEnemy(this, spawnPoint.x, spawnPoint.y)
+        myShooter.target = this.player;
+        this.enemies.push(myShooter)
+    }
+
+    playerDied() {
+        console.log("playerDied")
+
+        const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
+        const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
+        this.add.text(screenCenterX, screenCenterY, "You Died", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
+
+        this.time.delayedCall(3000, this.toMainScreen, [this]);
+    }
+
+    toMainScreen(self) {
+        self.scene.pause();
+        self.scene.start("menuscreen");
+    }
 
     create() {
         let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
@@ -644,20 +771,13 @@ class GameScreen extends Phaser.Scene {
 
         this.player = new Player(this, 500, 500, this.playerProjectileGroup);
 
-        this.createRunnerEnemy(this, 10)
+        for (let i=0; i < 5; i++)
+        this.createSwarmEnemy();
 
-        //createShooterEnemy(this)
-
-        // for (let i = 1; i <= 4; i++) {
-        //     createShooterEnemy(this)
-        // }
-
-        //Set up user input
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys('W, A, S, D');
 
         this.gui = this.add.text(450, 1100, ("HP: " + this.player.health + "  |  Level: " + this.player.level + "  |  XP Needed: " + (this.player.levelreq - this.player.xp)), { fontSize: '50px', fill: '#FFFFFF', font: '50px courier' });
-        this.time.delayedCall(5000, function() { console.log("baller"); this.scene.toMainScreen()});
     }
 
     reflectPosition(target) {
@@ -686,9 +806,9 @@ class GameScreen extends Phaser.Scene {
         }
         this.reflectPosition(this.player)
 
-        this.physics.overlap(this.player, this.enemies, function (player, targetEnemy) { this.player.takeDamage(targetEnemy.attackDamage); });
+        this.physics.overlap(this.player, this.enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
         this.physics.overlap(this.enemies, this.playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
-        this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { this.player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(this.player); })
+        this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
     }
 }
 
@@ -703,26 +823,21 @@ class MenuScreen extends Phaser.Scene {
     }
 
     preload() {
-        this.canvas = this.sys.game.canvas;
-        console.log(this.canvas)
+        this.load.image('stars', 'assets/images/newstarbackground.png');
     }
 
     create() {
+        let background = this.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'stars').setOrigin(0, 0);
+
         const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
 
-        console
-
-        this.titleText = this.add.text(screenCenterX, screenCenterY, "Intersell", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
+        this.titleText = this.add.text(screenCenterX, screenCenterY, "Interstell", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
         this.playText = this.add.text(screenCenterX, screenCenterY + 75, "Play", { fontSize: '75px', fill: '#FFFFFF', font: '50px courier' }).setOrigin(.5).setInteractive();
-        this.playText.on('pointerdown', function() { console.log("textClicked"); this.scene.startGame(); })
-        this.playText.on('pointerover', function() { console.log("textHovered"); this.setColor('#808080') })
-        this.playText.on('pointerout', function() { console.log("textUnhovered"); this.setColor('#FFFFFF') })
-
-        //this.scene.pause();
-        //this.scene.start('gamescreen');
+        this.playText.on('pointerdown', function () { console.log("textClicked"); this.scene.startGame(); })
+        this.playText.on('pointerover', function () { console.log("textHovered"); this.setColor('#808080') })
+        this.playText.on('pointerout', function () { console.log("textUnhovered"); this.setColor('#FFFFFF') })
     }
-
 }
 
 var config = {
