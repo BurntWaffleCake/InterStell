@@ -136,7 +136,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     fireRate = 100 // rounds per minute
 
     shotSpeed = 1000
-    shotDamage = 10000;
+    shotDamage = 5;
     shotPierce = 0;
     shotDistance = 10000;
 
