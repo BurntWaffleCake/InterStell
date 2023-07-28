@@ -548,8 +548,8 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
         let newspoty = Phaser.Math.Between(1, config.height);
         // this.setVelocity(0)
 
-        this.setAccelerationX((this._scene.player.x - this.x) + Phaser.Math.Between(50, 150));
-        this.setAccelerationY((this._scene.player.y - this.y) + Phaser.Math.Between(50, 150));
+        this.setAccelerationX((this._scene.player.x - this.x) + Phaser.Math.Between(100, 300));
+        this.setAccelerationY((this._scene.player.y - this.y) + Phaser.Math.Between(100, 300));
     }
 
     preUpdate(time, deltaTime) {
