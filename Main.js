@@ -129,14 +129,14 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     health = 100
     xp = 0;
     level = 1;
-    levelreq = 50
+    levelreq = 30
 
     shotAmount = 1
-    shotSpread = 5
-    fireRate = 100 // rounds per minute
+    shotSpread = 7
+    fireRate = 120 // rounds per minute
 
     shotSpeed = 1000
-    shotDamage = 5;
+    shotDamage = 10;
     shotPierce = 0;
     shotDistance = 10000;
 
@@ -160,11 +160,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     legendaryUpgradePics = ['bulletSpeedLegendary', 'damageLegendary', 'fireRateLegendary', 'maxPierceLegendary', 'shotSpreadLegendary', 'vampLegendary'];
     mythicUpgradePics = ['bulletSpeedMythic', 'damageMythic', 'fireRateMythic', 'maxPierceMythic', 'shotSpreadMythic', 'vampMythic'];
 
-    commonUpgradeEffects = [200, 4, 40, 2, 1, .125];
-    rareUpgradeEffects = [400, 8, 80, 4, 2, .25];
-    epicUpgradeEffects = [800, 16, 160, 8, 4, .5];
-    legendaryUpgradeEffects = [1600, 320, 32, 16, 8, 1];
-    MythicUpgradeEffects = [3200, 64, 640, 32, 16, 2];
+    commonUpgradeEffects =     [200, 4, 40, 2, 1, .125];
+    rareUpgradeEffects =       [400, 8, 80, 4, 2, .25];
+    epicUpgradeEffects =       [800, 16, 160, 8, 3, .5];
+    legendaryUpgradeEffects =  [1600, 32, 32, 16, 4, 1];
+    MythicUpgradeEffects =     [3200, 64, 64, 32, 5, 2];
 
     upgradePics = [this.commonUpgradePics, this.rareUpgradePics, this.epicUpgradePics, this.legendaryUpgradePics, this.mythicUpgradePics];
     upgradeEffects = [this.commonUpgradeEffects, this.rareUpgradeEffects, this.epicUpgradeEffects, this.legendaryUpgradeEffects, this.MythicUpgradeEffects]
@@ -209,7 +209,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 maxDistance: this.shotDistance,
                 width: 15,
                 heigh: 10
-            })
+            }) 
+        }
+        if(this.vamp > 3){
+            this.vamp = 3;
         }
     }
 
@@ -292,14 +295,20 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 this.health = 100;
             }
             this.levelreq = Math.floor(this.levelreq * 1.25)
-            if (this.level == 2) {
+            if (this.level == 5) {
                 for (let i = 1; i <= 2; i++) {
                     this.myscene.createShooterEnemy(this.myscene)
                 }
-            } else if (this.level >= 2) {
+            } if(this.level <= 5){
+                this.myscene.createSwarmEnemy(this.myscene);
+            } else if (this.level >= 6) {
                 this.myscene.createShooterEnemy(this.myscene);
                 this.myscene.createSwarmEnemy(this.myscene);
             }
+            if(this.level%10 == 0){
+                this.myscene.createTankEnemy(this.myscene);
+            }
+            // this.myscene.createTankEnemy(this.myscene);
             this.rarity = 0;
             let rarityVal = Phaser.Math.Between(1, 10000)
             if (rarityVal <= 5000) {
@@ -325,22 +334,22 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.img1.setScale(.075);
             this.used.push(this.type);
             if (this.type == 0) {
-                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
+                this.text1 = this.text1.setText(("[1] +" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
             }
             if (this.type == 1) {
-                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
+                this.text1 = this.text1.setText(("[1] +" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
             }
             if (this.type == 2) {
-                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
+                this.text1 = this.text1.setText(("[1] +" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
             }
             if (this.type == 3) {
-                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
+                this.text1 = this.text1.setText(("[1] +" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
             }
             if (this.type == 4) {
-                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
+                this.text1 = this.text1.setText(("[1] +" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
             }
             if (this.type == 5) {
-                this.text1 = this.text1.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
+                this.text1 = this.text1.setText(("[1] +" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
             }
 
             this.type = Phaser.Math.Between(0, 5);
@@ -351,22 +360,22 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.img2.setScale(.075);
             this.used.push(this.type);
             if (this.type == 0) {
-                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
+                this.text2 = this.text2.setText(("[2] +" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
             }
             if (this.type == 1) {
-                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
+                this.text2 = this.text2.setText(("[2] +" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
             }
             if (this.type == 2) {
-                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
+                this.text2 = this.text2.setText(("[2] +" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
             }
             if (this.type == 3) {
-                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
+                this.text2 = this.text2.setText(("[2] +" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
             }
             if (this.type == 4) {
-                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
+                this.text2 = this.text2.setText(("[2] +" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
             }
             if (this.type == 5) {
-                this.text2 = this.text2.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
+                this.text2 = this.text2.setText(("[2] +" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
             }
 
             this.type = Phaser.Math.Between(0, 5);
@@ -377,22 +386,22 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.img3.setScale(.075);
             this.used.push(this.type);
             if (this.type == 0) {
-                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
+                this.text3 = this.text3.setText(("[3] +" + this.upgradeEffects[this.rarity][this.type] + " BULLET SPEED"));
             }
             if (this.type == 1) {
-                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
+                this.text3 = this.text3.setText(("[3] +" + this.upgradeEffects[this.rarity][this.type] + " DAMAGE"));
             }
             if (this.type == 2) {
-                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
+                this.text3 = this.text3.setText(("[3] +" + this.upgradeEffects[this.rarity][this.type] + " FIRE RATE"));
             }
             if (this.type == 3) {
-                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
+                this.text3 = this.text3.setText(("[3] +" + this.upgradeEffects[this.rarity][this.type] + " PIERCE"));
             }
             if (this.type == 4) {
-                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
+                this.text3 = this.text3.setText(("[3] +" + this.upgradeEffects[this.rarity][this.type] + " SHOT AMOUNT"));
             }
             if (this.type == 5) {
-                this.text3 = this.text3.setText(("+" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
+                this.text3 = this.text3.setText(("[3] +" + this.upgradeEffects[this.rarity][this.type] + " LIFE STEAL"));
             }
 
             this.options.push(this.upgradeEffects[3][this.type]);
@@ -518,7 +527,7 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
         this._scene = scene;
         this.setGravityY(0);
-        this.setScale(.25);
+        this.setScale(.3);
         this.move(this);
         this.setMaxVelocity(300, 300);
     }
@@ -588,7 +597,7 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
     _scene;
     _projectileGroup;
 
-    health = 500;
+    health = 10000;
     shotDelay = 3; //seconds
     attackDamage = 20;
     alive = true;
@@ -621,6 +630,7 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
         this._scene.player.xp += 25;
         this._scene.player.checkxp()
         this._scene.player.health = Math.min(100, this._scene.player.health += this._scene.player.vamp)
+        this._scene.createTankEnemy(this._scene);
     }
 
     shoot() {
@@ -762,7 +772,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     flashGraphic;
 
     target;
-    health = 150;
+    health = 60;
     moveDelay = 1; //seconds
     shotDelay = 2; //seconds
     shotEnvelope = .5 // randomize to min and max
@@ -1011,16 +1021,6 @@ class GameScreen extends Phaser.Scene {
         }
     }
 
-    createRunnerEnemy() {
-        for (let i = 1; i <= 4; i++) {
-            let spawnPoint = this.getRandomPointOnEdge()
-
-            let myRunner = new RunnerEnemy(this, spawnPoint.x, spawnPoint.y)
-            myRunner.target = this.player
-            this.enemies.push(myRunner)
-        }
-    }
-
     createSwarmEnemy() {
         let spawnPoint = this.getRandomPointOnEdge()
         let myShooter = new SwarmEnemy(this, spawnPoint.x, spawnPoint.y)
@@ -1033,6 +1033,13 @@ class GameScreen extends Phaser.Scene {
         let myShooter = new ShooterEnemy(this, spawnPoint.x, spawnPoint.y)
         myShooter.target = this.player;
         this.enemies.push(myShooter)
+    }
+
+    createTankEnemy() {
+        let spawnPoint = this.getRandomPointOnEdge()
+        let myTank = new TankEnemy(this, spawnPoint.x, spawnPoint.y, Phaser.Math.RandomXY(new Phaser.Math.Vector2(0, 0)));
+        myTank.target = this.player;
+        this.enemies.push(myTank)
     }
 
     playerDied() {
