@@ -161,11 +161,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     legendaryUpgradePics = ['bulletSpeedLegendary', 'damageLegendary', 'fireRateLegendary', 'maxPierceLegendary', 'shotSpreadLegendary', 'vampLegendary'];
     mythicUpgradePics = ['bulletSpeedMythic', 'damageMythic', 'fireRateMythic', 'maxPierceMythic', 'shotSpreadMythic', 'vampMythic'];
 
-    commonUpgradeEffects =     [200, 4, 40, 2, 1, .125];
-    rareUpgradeEffects =       [400, 8, 80, 4, 2, .25];
-    epicUpgradeEffects =       [800, 16, 160, 8, 3, .5];
-    legendaryUpgradeEffects =  [1600, 32, 32, 16, 4, 1];
-    MythicUpgradeEffects =     [3200, 64, 64, 32, 5, 2];
+    commonUpgradeEffects = [200, 4, 40, 2, 1, .125];
+    rareUpgradeEffects = [400, 8, 80, 4, 2, .25];
+    epicUpgradeEffects = [800, 16, 160, 8, 3, .5];
+    legendaryUpgradeEffects = [1600, 32, 32, 16, 4, 1];
+    MythicUpgradeEffects = [3200, 64, 64, 32, 5, 2];
 
     upgradePics = [this.commonUpgradePics, this.rareUpgradePics, this.epicUpgradePics, this.legendaryUpgradePics, this.mythicUpgradePics];
     upgradeEffects = [this.commonUpgradeEffects, this.rareUpgradeEffects, this.epicUpgradeEffects, this.legendaryUpgradeEffects, this.MythicUpgradeEffects]
@@ -195,7 +195,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     shoot() {
-        if (Phaser.Math.Between(1,5) == 1) {
+        if (Phaser.Math.Between(1, 5) == 1) {
             this.myscene.sound.play('pew')
         } else {
             this.myscene.sound.play('playerShoot')
@@ -217,9 +217,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 maxDistance: this.shotDistance,
                 width: 15,
                 heigh: 10
-            }) 
+            })
         }
-        if(this.vamp > 3){
+        if (this.vamp > 3) {
             this.vamp = 3;
         }
     }
@@ -308,13 +308,13 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 for (let i = 1; i <= 2; i++) {
                     this.myscene.createShooterEnemy(this.myscene)
                 }
-            } if(this.level <= 5){
+            } if (this.level <= 5) {
                 this.myscene.createSwarmEnemy(this.myscene);
             } else if (this.level >= 6) {
                 this.myscene.createShooterEnemy(this.myscene);
                 this.myscene.createSwarmEnemy(this.myscene);
             }
-            if(this.level%10 == 0){
+            if (this.level % 10 == 0) {
                 this.myscene.createTankEnemy(this.myscene);
             }
             // this.myscene.createTankEnemy(this.myscene);
@@ -541,7 +541,7 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion', {volume: .5})
+        this._scene.sound.play('explosion', { volume: .5 })
         this.destroy();
         this.alive = false;
         this._scene.player.xp += 5;
@@ -625,7 +625,7 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion', {volume: .5})
+        this._scene.sound.play('explosion', { volume: .5 })
         this.destroy();
         this.alive = false;
 
@@ -817,7 +817,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion', {volume: .5})
+        this._scene.sound.play('explosion', { volume: .5 })
         this.destroy();
         this.alive = false;
         this._scene.player.xp += 10;
@@ -914,7 +914,7 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion', {volume: .5})
+        this._scene.sound.play('explosion', { volume: .5 })
         this._scene.player.xp += 1;
         this._scene.player.checkxp();
         this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createShooterEnemy(this._scene));
@@ -961,7 +961,7 @@ class GameScreen extends Phaser.Scene {
     enemyProjectileGroup;
 
     backgroundMusic;
-    
+
     //Keyboard controls
     cursors;
     keys;
@@ -1110,7 +1110,7 @@ class GameScreen extends Phaser.Scene {
         this.two = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
         this.three = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
 
-        this.backgroundMusic = this.sound.add('backgroundMusic', {volume: .5, loop: true})
+        this.backgroundMusic = this.sound.add('backgroundMusic', { volume: .5, loop: true })
         this.backgroundMusic.play()
     }
 
@@ -1141,8 +1141,8 @@ class GameScreen extends Phaser.Scene {
         this.reflectPosition(this.player)
 
         this.physics.overlap(this.player, this.enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
-        this.physics.overlap(this.enemies, this.playerProjectileGroup, function (enemy, playerProjectile) { if(!playerProjectile.active){return}; enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
-        this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { if(!enemyProjectile.active){return}; player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
+        this.physics.overlap(this.enemies, this.playerProjectileGroup, function (enemy, playerProjectile) { if (!playerProjectile.active) { return }; enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
+        this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { if (!enemyProjectile.active) { return }; player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
 
         if (Phaser.Input.Keyboard.JustDown(this.one)) {
             this.player.selectOne();
@@ -1185,9 +1185,20 @@ class MenuScreen extends Phaser.Scene {
 }
 
 var config = {
-    type: Phaser.AUTO,
-    width: 1900,
-    height: 1180,
+    parent: "game",
+    width: 1920,
+    height: 1080,
+    scale: {
+        mode: Phaser.Scale. FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        zoom: 1,
+        min: {
+            width: 16,
+            height: 9
+        }
+      
+    },
+
     physics: {
         default: 'arcade',
         arcade: {
@@ -1195,7 +1206,7 @@ var config = {
             debugShowVelocity: true,
         }
     },
-
+    zoom: 1,
     scene: [MenuScreen, GameScreen]
 
     //BIG BALLING
