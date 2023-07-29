@@ -541,7 +541,7 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion')
+        this._scene.sound.play('explosion', {volume: .5})
         this.destroy();
         this.alive = false;
         this._scene.player.xp += 5;
@@ -625,7 +625,7 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion')
+        this._scene.sound.play('explosion', {volume: .5})
         this.destroy();
         this.alive = false;
 
@@ -817,7 +817,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion')
+        this._scene.sound.play('explosion', {volume: .5})
         this.destroy();
         this.alive = false;
         this._scene.player.xp += 10;
@@ -914,7 +914,7 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
-        this._scene.sound.play('explosion')
+        this._scene.sound.play('explosion', {volume: .5})
         this._scene.player.xp += 1;
         this._scene.player.checkxp();
         this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createShooterEnemy(this._scene));
