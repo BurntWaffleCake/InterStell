@@ -70,7 +70,8 @@ class Projectile extends Phaser.Physics.Arcade.Sprite {
 
         if (!this._testAlive()) {
             this.active = false;
-            this.disableBody(true, true);
+            this.visible = false;
+            return
         }
 
         this._timePassed += delta;
@@ -101,7 +102,7 @@ class Projectile extends Phaser.Physics.Arcade.Sprite {
 
     onHit(hitObject) {
         if (!this.active) { return }
-        if (this._piercedObjects.find(element => element == hitObject.UUID)) { console.log("balls"); return }
+        if (this._piercedObjects.find(element => element == hitObject.UUID)) { return }
         this._pierceCount += 1;
         this._piercedObjects.push(hitObject.UUID);
     }
@@ -111,7 +112,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     _iframeremainingtime = 0;
     _timesincelastshot = 0;
 
-    iframeTime = .25; //seconds
+    iframeTime = .45; //seconds
 
     shootTimer;
     shooting = false
@@ -194,6 +195,13 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     shoot() {
+        if (Phaser.Math.Between(1,5) == 1) {
+            this.myscene.sound.play('pew')
+        } else {
+            this.myscene.sound.play('playerShoot')
+        }
+
+
         let playerLookVector = new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation))
 
         for (let i = 0; i < this.shotAmount; i++) {
@@ -271,6 +279,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         if (this._iframeremainingtime > 0) {
             return;
         }
+        this.myscene.sound.play('playerHit')
         this._iframeremainingtime = this.iframeTime * 1000;
         this.health -= damage;
     }
@@ -396,15 +405,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             }
 
             this.options.push(this.upgradeEffects[3][this.type]);
-            console.log(this.used);
         }
     }
 
     selectOne() {
-        console.log("selecting")
-
         this.type = this.used[0]
-        console.log(this.type)
         if (this.type == 0) {
             this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
         }
@@ -434,10 +439,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     selectTwo() {
-        console.log("selecting")
-
         this.type = this.used[1]
-        console.log(this.type)
         if (this.type == 0) {
             this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
         }
@@ -467,10 +469,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     selectThree() {
-        console.log("selecting")
-
         this.type = this.used[2]
-        console.log(this.type)
         if (this.type == 0) {
             this.shotSpeed += this.upgradeEffects[this.rarity][this.type]
         }
@@ -533,6 +532,7 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
+        this._scene.sound.play('explosion')
         this.destroy();
         this.alive = false;
         this._scene.player.xp += 5;
@@ -569,6 +569,7 @@ class SwarmEnemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage) {
         this.health -= damage;
+        this._scene.sound.play('enemyHit')
 
         if (this._currentFlashTween && this._currentFlashTween.progress < 1) { return }
         this._currentFlashTween = this._scene.tweens.add({
@@ -615,6 +616,7 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
+        this._scene.sound.play('explosion')
         this.destroy();
         this.alive = false;
 
@@ -625,7 +627,7 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
 
     shoot() {
         let randomStart = Phaser.Math.FloatBetween(0, Math.PI / 4)
-
+        this._scene.sound.play('enemyShoot')
         for (let i = 0; i < 8; i++) {
             this._projectileGroup.fire(this.x, this.y, new Phaser.Math.Vector2(1, 0).rotate(randomStart + (Math.PI / 4 * i)), {
                 speed: 500,
@@ -653,6 +655,16 @@ class TankEnemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage) {
         this.health -= damage;
+        this._scene.sound.play('enemyHit')
+        if (this._currentFlashTween && this._currentFlashTween.progress < 1) { return }
+        this._currentFlashTween = this._scene.tweens.add({
+            targets: this,
+            alpha: 0,
+            ease: 'Cubic.easeOut',
+            duration: 50,
+            repeat: 1,
+            yoyo: true
+        })
     }
 }
 
@@ -795,6 +807,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
+        this._scene.sound.play('explosion')
         this.destroy();
         this.alive = false;
         this._scene.player.xp += 10;
@@ -812,6 +825,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     shoot() {
+        this._scene.sound.play('enemyShoot')
         this._projectileGroup.fire(this.x, this.y, new Phaser.Math.Vector2(Math.cos(this.rotation), Math.sin(this.rotation)), {
             speed: 500,
             damage: 10,
@@ -843,7 +857,7 @@ class ShooterEnemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage) {
         this.health -= damage;
-
+        this._scene.sound.play('enemyHit')
         if (this._currentFlashTween && this._currentFlashTween.progress < 1) { return }
         this._currentFlashTween = this._scene.tweens.add({
             targets: this,
@@ -890,6 +904,7 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     kill() {
+        this._scene.sound.play('explosion')
         this._scene.player.xp += 1;
         this._scene.player.checkxp();
         this._scene.guiTimer = this._scene.time.delayedCall(10000, this._scene.createShooterEnemy(this._scene));
@@ -905,7 +920,6 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
 
         this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
 
-
         if (this.useWave) {
             let moveVector = this.moveDirection.clone()
             let rightVector = this.moveDirection.clone().normalize().rotate(Math.PI / 2).scale(this.waveAmplitude * Math.cos(this.waveTimeScale * time / 1000))
@@ -916,6 +930,16 @@ class RunnerEnemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage) {
         this.health -= damage;
+        this._scene.sound.play('enemyHit')
+        if (this._currentFlashTween && this._currentFlashTween.progress < 1) { return }
+        this._currentFlashTween = this._scene.tweens.add({
+            targets: this,
+            alpha: 0,
+            ease: 'Cubic.easeOut',
+            duration: 50,
+            repeat: 1,
+            yoyo: true
+        })
     }
 }
 
@@ -926,6 +950,8 @@ class GameScreen extends Phaser.Scene {
     playerProjectileGroup;
     enemyProjectileGroup;
 
+    backgroundMusic;
+    
     //Keyboard controls
     cursors;
     keys;
@@ -995,7 +1021,15 @@ class GameScreen extends Phaser.Scene {
         this.load.image('vampLegendary', 'assets/images/Vamp_Legendary.png')
         this.load.image('vampMythic', 'assets/images/Vamp_Mythic.png')
 
-        this.load.audio('playershoot', 'assets/audio/playershoot_1.mp3')
+        this.load.audio('playerHit', 'assets/audio/playerHit.mp3')
+        this.load.audio('playerShoot', 'assets/audio/playerShoot.wav')
+        this.load.audio('pew', 'assets/audio/Pew.mp3')
+        this.load.audio('boom', 'assets/audio/Boom.mp3')
+        this.load.audio('explosion', 'assets/audio/explosion.wav')
+        this.load.audio('levelUp', 'assets/audio/powerUp.wav')
+        this.load.audio('enemyHit', 'assets/audio/enemyHit.wav')
+        this.load.audio('enemyShoot', 'assets/audio/enemyShoot.wav')
+        this.load.audio('backgroundMusic', 'assets/audio/BackgroundMusic(Terraria.Calamity.UnholyInsurgency).mp3')
     }
 
     getRandomPointOnEdge() {
@@ -1036,13 +1070,12 @@ class GameScreen extends Phaser.Scene {
     }
 
     playerDied() {
-        console.log("playerDied")
-
         const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
         this.add.text(screenCenterX, screenCenterY, "You Died", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
 
         this.time.delayedCall(3000, this.toMainScreen, [this]);
+        this.backgroundMusic.stop()
     }
 
     toMainScreen(self) {
@@ -1069,6 +1102,9 @@ class GameScreen extends Phaser.Scene {
         this.one = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
         this.two = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
         this.three = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+
+        this.backgroundMusic = this.sound.add('backgroundMusic', {volume: .5, loop: true})
+        this.backgroundMusic.play()
     }
 
     reflectPosition(target) {
@@ -1098,8 +1134,8 @@ class GameScreen extends Phaser.Scene {
         this.reflectPosition(this.player)
 
         this.physics.overlap(this.player, this.enemies, function (player, targetEnemy) { player.takeDamage(targetEnemy.attackDamage); });
-        this.physics.overlap(this.enemies, this.playerProjectileGroup, function (enemy, playerProjectile) { enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
-        this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
+        this.physics.overlap(this.enemies, this.playerProjectileGroup, function (enemy, playerProjectile) { if(!playerProjectile.active){return}; enemy.takeDamage(playerProjectile.damage); playerProjectile.onHit(enemy); })
+        this.physics.overlap(this.player, this.enemyProjectileGroup, function (player, enemyProjectile) { if(!enemyProjectile.active){return}; player.takeDamage(enemyProjectile.damage); enemyProjectile.onHit(player); })
 
         if (Phaser.Input.Keyboard.JustDown(this.one)) {
             this.player.selectOne();
@@ -1135,9 +1171,9 @@ class MenuScreen extends Phaser.Scene {
 
         this.titleText = this.add.text(screenCenterX, screenCenterY, "Interstell v1.0.0", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
         this.playText = this.add.text(screenCenterX, screenCenterY + 75, "Play", { fontSize: '75px', fill: '#FFFFFF', font: '50px courier' }).setOrigin(.5).setInteractive();
-        this.playText.on('pointerdown', function () { console.log("textClicked"); this.scene.startGame(); })
-        this.playText.on('pointerover', function () { console.log("textHovered"); this.setColor('#808080') })
-        this.playText.on('pointerout', function () { console.log("textUnhovered"); this.setColor('#FFFFFF') })
+        this.playText.on('pointerdown', function () { this.scene.startGame(); })
+        this.playText.on('pointerover', function () { this.setColor('#808080') })
+        this.playText.on('pointerout', function () { this.setColor('#FFFFFF') })
     }
 }
 
