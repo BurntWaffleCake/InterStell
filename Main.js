@@ -1079,7 +1079,7 @@ class GameScreen extends Phaser.Scene {
     playerDied() {
         const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
-        this.add.text(screenCenterX, screenCenterY, "You Died", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
+        this.add.text(screenCenterX, screenCenterY, "YOU DIED", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
 
         this.time.delayedCall(3000, this.toMainScreen, [this]);
         this.backgroundMusic.stop()
@@ -1176,8 +1176,8 @@ class MenuScreen extends Phaser.Scene {
         const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 2;
 
-        this.titleText = this.add.text(screenCenterX, screenCenterY, "Interstell v1.0.0", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
-        this.playText = this.add.text(screenCenterX, screenCenterY + 75, "Play", { fontSize: '75px', fill: '#FFFFFF', font: '50px courier' }).setOrigin(.5).setInteractive();
+        this.titleText = this.add.text(screenCenterX, screenCenterY, "INTERSTELL", { fontSize: '100px', fill: '#FFFFFF', font: '75px courier' }).setOrigin(.5);
+        this.playText = this.add.text(screenCenterX, screenCenterY + 75, "PLAY", { fontSize: '75px', fill: '#FFFFFF', font: '50px courier' }).setOrigin(.5).setInteractive();
         this.playText.on('pointerdown', function () { this.scene.startGame(); })
         this.playText.on('pointerover', function () { this.setColor('#808080') })
         this.playText.on('pointerout', function () { this.setColor('#FFFFFF') })
